@@ -370,3 +370,22 @@ label:has(> input[type='radio']), label:has(> input[type='checkbox']) { flex-dir
 .tracker-table { width: 100%; border-collapse: collapse; } .tracker-table td { border-bottom: 1px solid #3a2a2a; padding: 0.3rem; vertical-align: top; }
 .tracker-table tr.current { background: #3a1d1d; } .tracker-table tr.down { opacity: 0.5; }
 .hp-controls { display: flex; gap: 0.25rem; align-items: center; }
+
+.encounters { flex: 1; min-height: 0; overflow-y: auto; padding: 0.6rem 1rem; }
+.encounters-bar { display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: center; margin-bottom: 0.6rem; }
+.encounter-table { width: 100%; border-collapse: collapse; }
+.encounter-table th { text-align: left; font-size: 0.72rem; text-transform: uppercase; color: var(--muted); padding: 0.2rem 0.4rem; }
+.encounter-table td { border-bottom: 1px solid #3a2a2a; padding: 0.25rem 0.4rem; vertical-align: top; }
+.encounter-table tr.current { background: #3a1d1d; } .encounter-table tr.down { opacity: 0.5; }
+.encounter-table tr.pc { background: #17191a; } .encounter-table tr.pc.current { background: #3a1d1d; }
+.encounter-table td.who { min-width: 11rem; } .encounter-table td.hp { min-width: 8rem; } .encounter-table td.line { font-size: 0.9em; }
+.hpbar { height: 5px; background: #3a2a2a; border-radius: 3px; margin: 2px 0; } .hpbar div { height: 100%; background: #3fb950; border-radius: 3px; } .hpbar.enemy div { background: #c1121f; }
+strong.low { color: #ff4d4d; }
+.chip.warn { border-color: #e0b050; cursor: default; }
+.ability-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem; }
+.ability-chip { position: relative; display: inline-block; padding: 0 0.45rem; border: 1px solid #5a3a3a; border-radius: 10px; font-size: 0.85em; cursor: help; background: #231a1b; }
+.ability-chip.kind-actions { border-color: #8b2a2a; } .ability-chip.kind-legendaryActions { border-color: #e0b050; }
+.ability-popup { display: none; position: absolute; left: 0; top: 1.5rem; z-index: 90; width: 26rem; max-width: 70vw; padding: 0.6rem 0.8rem; background: #1d1416; border: 1px solid #8b2a2a; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); font-weight: normal; }
+.ability-chip:hover .ability-popup { display: block; } .ability-text { display: block; margin-top: 0.3rem; }
+.enemy-picker { position: relative; display: inline-flex; gap: 0.4rem; align-items: center; } .enemy-picker .text-input { width: 22rem; }
+.enemy-menu { position: absolute; top: 2rem; left: 0; z-index: 95; width: 36rem; max-width: 90vw; max-height: 22rem; overflow-y: auto; background: #1d1416; border: 1px solid #8b2a2a; border-radius: 6px; }
