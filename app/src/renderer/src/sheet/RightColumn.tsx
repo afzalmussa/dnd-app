@@ -1,5 +1,6 @@
 // Right column: AC, speed, resources, defenses, conditions, senses.
 
+import { clampExhaustion, effectiveSpeed, exhaustionSpeedPenalty } from '../../../shared/rules/exhaustion'
 import { CONDITIONS, DAMAGE_TYPES } from '../../../shared/coreRules'
 import { passivePerception } from '../../../shared/rules/abilities'
 import { armorClass } from '../../../shared/rules/summary'
@@ -33,7 +34,7 @@ export function RightColumn() {
           {editing ? (
             <NumberInput value={character.manualValues.speed} onChange={(v) => update((c) => { c.manualValues.speed = v })} />
           ) : (
-            <span className="stat-value">{character.manualValues.speed ?? '?'} ft</span>
+            <span className="stat-value" title={character.state.exhaustion ? `Reduced by Exhaustion (-${exhaustionSpeedPenalty(character.state.exhaustion)} ft)` : undefined}>{effectiveSpeed(character.manualValues.speed, character.state.exhaustion) ?? '?'} ft</span>
           )}
         </div>
       </div>
@@ -80,7 +81,7 @@ export function RightColumn() {
           <NumberInput
             value={character.state.exhaustion}
             min={0}
-            onChange={(v) => update((c) => { c.state.exhaustion = Math.max(0, v ?? 0) })}
+            onChange={(v) => update((c) => { c.state.exhaustion = clampExhaustion(v ?? 0) })}
           />
         </div>
       </Section>

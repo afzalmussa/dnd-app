@@ -59,18 +59,61 @@
     }
   },
   "xge": {
-    "legacy_subclasses": {
-      "barbarian": {
+    "legacy_subclasses": [
+      {
+        "class": "barbarian",
         "article": "a barbarian",
         "first": 10,
         "last": 12
+      },
+      {
+        "class": "cleric",
+        "article": "a cleric",
+        "first": 19,
+        "last": 22,
+        "names": [
+          "Forge Domain",
+          "Grave Domain"
+        ]
+      },
+      {
+        "class": "wizard",
+        "article": "a wizard",
+        "first": 60,
+        "last": 61,
+        "names": [
+          "War Magic"
+        ]
       }
-    }
+    ]
   },
   "tce": {
     "legacy_feats": {
       "first": 80,
       "last": 82
-    }
+    },
+    "legacy_subclasses": [
+      {
+        "class": "cleric",
+        "article": "a cleric",
+        "first": 32,
+        "last": 35,
+        "names": [
+          "Order Domain",
+          "Peace Domain",
+          "Twilight Domain"
+        ]
+      },
+      {
+        "class": "wizard",
+        "article": "a wizard",
+        "first": 77,
+        "last": 79,
+        "names": [
+          "Bladesinging",
+          "Order of Scribes"
+        ]
+      }
+    ]
   }
 }

@@ -168,7 +168,7 @@ export function TopBar() {
           title="Heroic Inspiration"
           onClick={() => update((c) => { c.state.inspiration = !c.state.inspiration })}
         >
-          <span className="small-label">Inspiration</span>
+          <span className="small-label">Heroic Insp.</span>
           <span className="stat-value">{state.inspiration ? '★' : '☆'}</span>
         </button>
         <div className="stat">

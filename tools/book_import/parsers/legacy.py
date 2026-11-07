@@ -11,6 +11,7 @@ from parsers.origins import load_lines, name_is_broken, tidy
 from parsers.subclasses import caps_share
 
 TABLE_ROW = re.compile(r"^(\d{1,2})\s?(?:st|nd|rd|th)\s+(.+)$")
+LEVEL_MARKER = re.compile(r"^(\d{1,2})\s?(?:st|nd|rd|th)-level\b.*feature", re.IGNORECASE)
 SUBCLASS_LEVEL = 3  # table rule: 2014 subclasses are chosen at level 3, earlier features arrive then
 
 
@@ -35,17 +36,17 @@ def is_feature_heading(line):
     return len(line) >= 4 and caps_share(line) > 0.9 and not line.endswith("FEATURES")
 
 
-def parse_subclasses_2014(cache_dir, book, ruleset, class_name, article, first, last):
+def parse_subclasses_2014(cache_dir, book, ruleset, class_name, article, first, last, names=None):
     fixes, out = [], []
     lines, pages, ocr_pages = load_lines(cache_dir, book, first, last, fixes)
-    names = subclass_names_from_intro(lines, article)
+    names = names or subclass_names_from_intro(lines, article)
     if not names:
         return [], fixes, [f"{class_name}: subclass names not read from the intro sentence"]
     # Subclass headings: capitals lines that are not the table title.
     heads, cursor = [], 0
     for name in names:
         idx = next((i for i in range(cursor, len(lines))
-                    if len(lines[i]) < 60 and caps_share(lines[i]) > 0.7 and not letters(lines[i]).endswith("FEATURES")
+                    if len(lines[i]) < 60 and caps_share(lines[i]) > 0.7 and not letters(lines[i]).endswith(("FEATURES", "SPELLS"))
                     and similar(lines[i], name) >= 0.8), None)
         heads.append(idx)
         if idx is not None:
@@ -61,19 +62,37 @@ def parse_subclasses_2014(cache_dir, book, ruleset, class_name, article, first, 
         end = next((j for j in heads[k + 1:] if j is not None), len(lines))
         block = lines[h + 1:end]
         t = next((i for i, l in enumerate(block) if letters(l).endswith("FEATURES") and caps_share(l) > 0.7), None)
+        table = []
         if t is None:
             flags.append("features table not found")
-            table = []
         else:
             table, j = [], t + 1
             while j < len(block) and j < t + 4 and not TABLE_ROW.match(block[j]):
                 j += 1  # skip the "Barbarian / Level Feature" heading lines
-            while j < len(block) and TABLE_ROW.match(block[j]):
+            rows = []
+            while j < len(block):
                 m = TABLE_ROW.match(block[j])
-                for part in re.split(r",\s*", m.group(2)):
-                    table.append((int(m.group(1)), re.sub(r"\s*\(.*?\)\s*$", "", part).strip(), part.strip()))
+                if m:
+                    rows.append([int(m.group(1)), m.group(2)])
+                elif rows and caps_share(block[j]) < 0.5 and len(block[j]) < 70:
+                    rows[-1][1] += " " + block[j]  # a table row that wrapped onto a second line
+                else:
+                    break
                 j += 1
-        first_seen, features = {}, []
+            for level_, names_ in rows:
+                for part in re.split(r",\s*(?![^()]*\))", names_):
+                    table.append((level_, re.sub(r"\s*\(.*?\)\s*$", "", part).strip(), part.strip()))
+        marker_texts = {}
+        if not table:
+            markers = [i for i, l in enumerate(block) if LEVEL_MARKER.match(l) and i > 0]
+            for n_, i in enumerate(markers):
+                label = block[i - 1].title().replace("'S", "'s")
+                stop = (markers[n_ + 1] - 1) if n_ + 1 < len(markers) else len(block)
+                table.append((int(LEVEL_MARKER.match(block[i]).group(1)), label, label))
+                marker_texts[label] = tidy([l for l in block[i + 1:stop] if not (caps_share(l) > 0.9 and len(l) > 20 and l.endswith("SPELLS"))])
+            if table:
+                flags = [f for f in flags if f != "features table not found"]
+        first_seen, features = dict(marker_texts), []
         for printed, fname, label in table:
             fflags = []
             level = max(printed, SUBCLASS_LEVEL)
@@ -103,7 +122,18 @@ def parse_subclasses_2014(cache_dir, book, ruleset, class_name, article, first, 
             })
         if not features:
             flags.append("no features found")
-        out.append({"id": f"subclass.{slug(name)}.{book}", "kind": "subclass", "name": name,
+        domain_spells = []
+        ds = next((i for i, l in enumerate(block) if letters(l).endswith("SPELLS") and caps_share(l) > 0.9
+                   and any(TABLE_ROW.match(x) for x in block[i + 1:i + 4])), None)
+        if ds is not None:
+            j = ds + 1
+            while j < len(block) and not TABLE_ROW.match(block[j]) and j < ds + 4:
+                j += 1
+            while j < len(block) and TABLE_ROW.match(block[j]):
+                m = TABLE_ROW.match(block[j])
+                domain_spells.append({"level": int(m.group(1)), "spells": [x.strip() for x in re.split(r",\s*", m.group(2)) if x.strip()]})
+                j += 1
+        out.append({"id": f"subclass.{slug(name)}.{book}", "kind": "subclass", "name": name, "domainSpells": domain_spells,
                     "classId": f"class.{slug(class_name)}.phb24", "summary": "", "text": "", "features": features,
                     "source": {"book": book, "ruleset": ruleset, "page": pages[h], "ocrUsed": pages[h] in ocr_pages, "flags": flags}})
     return out, fixes, []

@@ -385,3 +385,20 @@ Run per book: `python import_books.py --book phb24 --only classes:barbarian,cler
 - **Books in scope:** PHB 2024, Xanathar's, Tasha's and Giants only. The DMG, Monster Manual and Curse of Strahd files are out of scope and the import refuses any book not listed in `books.json`.
 - **Players never need the PDFs.** Everything the sheet and level-up wizard use is extracted into the data pack, which the build bundles. Page numbers stay on each entry for the DM to check against the book.
 - **Milestone 2 onwards runs in Claude Code on the DM's PC**, so the import can read the PDFs directly. Milestone 1 is built in the cloud session.
+
+## 11. 2024 rules only (decided during Milestone 2)
+
+Every character uses the 2024 rules. 2014 books stay allowed as legacy content. Each change below was read from the 2024 PHB (page numbers are PDF pages), not from memory.
+
+| Change | PHB source | Where it lives |
+|---|---|---|
+| A Hit Point Die heals roll + Con modifier, minimum 1 Hit Point | Rules Glossary, Short Rest (p.372) | `rules/rest.ts`, test in `rest.test.ts` |
+| Long Rest: all HP, all spent Hit Point Dice, Exhaustion -1; Temporary HP last until used up or a Long Rest | Glossary, Long Rest (p.369); Temporary Hit Points (p.28) | `rules/rest.ts` |
+| Exhaustion: D20 Tests -2 per level, Speed -5 ft per level, death at level 6 | Glossary, Exhaustion [Condition] (p.365) | `rules/exhaustion.ts`, roll log and Speed on the sheet |
+| Inspiration is now Heroic Inspiration (reroll any die) | Glossary (p.367) | sheet label |
+| Older backgrounds: +2/+1 or +1/+1/+1 to any scores, and an Origin feat of your choice; older species' ability increases are ignored | Chapter 2 sidebar (p.37) | `data-pack/phb24/legacy-rules.json`, character `origin` field |
+| Same-named 2014 feats are replaced by the 2024 version (Slasher, Crusher, Piercer, Poisoner, Chef, Skill Expert, Fey Touched, Shadow Touched, Telekinetic, Telepathic) | Introduction, "What's New" (p.4) | `supersededBy` on Tasha's feats |
+| An older Cleric subclass's Divine Strike or Potent Spellcasting is used only if chosen for Blessed Strikes | Cleric, level 7 (p.70) | `legacy-rules.json` |
+| 2014 subclass chosen at level 3; earlier features arrive at level 3 | Your table rule (to confirm) | `printedLevel` and `level` on each subclass feature |
+
+The character file now has `ruleset: "2024"` and `origin: { backgroundIncreases, originFeat }`. `tools/book_import/sheet_to_2024.py` lists what changes for the three sample characters (written to `reports/`, never committed).

@@ -1,5 +1,6 @@
 // The app window: toolbar, the open character, autosave and the roll log.
 
+import { exhaustionRollPenalty } from '../../shared/rules/exhaustion'
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createBlankCharacter } from '../../shared/character'
 import type { RollMode } from '../../shared/rules/dice'
@@ -86,7 +87,9 @@ export default function App() {
 
   function rollD20(label: string, bonus: number, event?: MouseEvent) {
     const mode: RollMode = event?.shiftKey ? 'advantage' : event?.ctrlKey ? 'disadvantage' : rollMode
-    addRoll(d20Entry(label, bonus, mode))
+    // 2024 Exhaustion: every D20 Test is reduced by 2 per level.
+    const penalty = character ? exhaustionRollPenalty(character.state.exhaustion) : 0
+    addRoll(d20Entry(penalty ? `${label} (Exhaustion -${penalty})` : label, bonus - penalty, mode))
   }
 
   function rollDice(label: string, expression: string, critical = false): number | null {

@@ -1,11 +1,12 @@
 // Short and long rests.
 // These functions change the character passed in (the UI passes a copy).
 //
-// Assumptions to check against the 2024 PHB Rules Glossary (Short Rest, Long
-// Rest, Temporary Hit Points). Each one is a single line below if it needs changing:
-//   - Spending a Hit Point Die heals the roll + Con modifier, never less than 0.
-//   - A long rest restores all HP and all spent Hit Point Dice.
-//   - A long rest removes temporary HP and reduces Exhaustion by 1.
+// Checked against the 2024 PHB Rules Glossary (Short Rest, Long Rest) and chapter 1
+// (Temporary Hit Points):
+//   - Spending a Hit Point Die heals the roll + Con modifier, minimum 1 Hit Point.
+//   - A Long Rest restores all lost HP and all spent Hit Point Dice.
+//   - Temporary HP last until depleted or a Long Rest ends them.
+//   - A Long Rest reduces Exhaustion by 1.
 
 import { mod } from './abilities'
 import { hitDicePools } from './summary'
@@ -18,7 +19,7 @@ export function spendHitDie(character: CharacterFile, die: number, roll: number,
   if (!pool || pool.used >= pool.total) return null
   const key = `d${die}`
   character.state.hitDiceUsed[key] = (character.state.hitDiceUsed[key] ?? 0) + 1
-  const regained = Math.max(0, roll + mod(character, 'con'))
+  const regained = Math.max(1, roll + mod(character, 'con')) // 2024: minimum of 1 Hit Point
   const before = character.state.hpCurrent
   character.state.hpCurrent = Math.min(maxHp, before + regained)
   return character.state.hpCurrent - before

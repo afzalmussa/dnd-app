@@ -19,6 +19,14 @@ export interface CharacterFile {
   player: string
   portrait: string | null // small embedded image (data URL)
 
+  // Which rules this character uses. 2024 is the only one the app builds for;
+  // 2014 books are allowed as "legacy" content on a 2024 character.
+  ruleset: '2024'
+
+  // 2024 origin: the background's +2/+1 (or +1/+1/+1) and the Origin feat.
+  // Species from older books give no ability increases (2024 PHB, chapter 2).
+  origin: { backgroundIncreases: Partial<Record<Ability, number>>; originFeat: string }
+
   // Links to imported rules data. Empty until the data pack exists (Milestone 2+).
   speciesId: string | null
   backgroundId: string | null

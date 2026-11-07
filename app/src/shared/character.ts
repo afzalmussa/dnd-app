@@ -13,6 +13,8 @@ export function createBlankCharacter(): CharacterFile {
     name: 'New Character',
     player: '',
     portrait: null,
+    ruleset: '2024',
+    origin: { backgroundIncreases: {}, originFeat: '' },
     speciesId: null,
     backgroundId: null,
     levels: [],
@@ -90,6 +92,8 @@ export function normalizeCharacter(raw: unknown): CharacterFile {
   merged.state = { ...blank.state, ...(data.state as object) }
   merged.dmOverrides = { ...blank.dmOverrides, ...(data.dmOverrides as object) }
   merged.notes = { ...blank.notes, ...(data.notes as object) }
+  merged.origin = { ...blank.origin, ...(data.origin as object) }
+  merged.ruleset = '2024'
   merged.schemaVersion = CURRENT_SCHEMA_VERSION
   return merged
 }

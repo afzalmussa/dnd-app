@@ -97,3 +97,11 @@ describe('longRest', () => {
     expect(c.state.exhaustion).toBe(0)
   })
 })
+
+describe('2024 Hit Point Die minimum', () => {
+  it('heals at least 1 Hit Point even when roll plus Con is lower', () => {
+    const c = restingCharacter()
+    c.abilityScores.con = 6 // -2
+    expect(spendHitDie(c, 12, 1, 40)).toBe(1)
+  })
+})
