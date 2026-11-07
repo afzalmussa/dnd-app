@@ -58,7 +58,7 @@ export interface FeatInfo {
 
 export interface AppApi {
   listFeats(): Promise<FeatInfo[]>
-  getClassData(): Promise<{ classes: unknown[]; subclasses: unknown[] }>
+  getClassData(): Promise<{ classes: unknown[]; subclasses: unknown[]; multiclass: unknown }>
   listSpells(): Promise<SpellInfo[]>
   listItems(): Promise<ItemInfo[]>
   getSaveFolder(): Promise<string>

@@ -108,9 +108,10 @@ export function listFeats(): FeatInfo[] {
 }
 
 // Classes and subclasses with the fields the level-up wizard uses.
-export function getClassData(): { classes: unknown[]; subclasses: unknown[] } {
+export function getClassData(): { classes: unknown[]; subclasses: unknown[]; multiclass: unknown } {
   const classes = readAll('classes.json').map((c) => ({
     id: c.id, name: c.name, hitDie: c.hitDie, subclassLevel: c.subclassLevel, spellcasting: c.spellcasting,
+    primaryAbilities: c.primaryAbilities, primaryOr: / or /i.test(c.traitBoxPrinted?.['Primary Ability'] ?? ''),
     progression: c.progression,
     features: c.features.map((f: any) => ({ id: f.id, name: f.name, level: f.level, text: f.text }))
   }))
@@ -118,5 +119,15 @@ export function getClassData(): { classes: unknown[]; subclasses: unknown[] } {
     id: s.id, name: s.name, classId: s.classId, ruleset: s.source.ruleset, book: s.source.book,
     features: s.features.map((f: any) => ({ id: f.id, name: f.name, level: f.level, printedLevel: f.printedLevel, text: f.text }))
   }))
-  return { classes, subclasses }
+  let multiclass: unknown = null
+  const folder = dataPackFolder()
+  const mcFile = folder ? join(folder, 'phb24', 'multiclassing.json') : ''
+  if (mcFile && existsSync(mcFile)) {
+    try {
+      multiclass = JSON.parse(readFileSync(mcFile, 'utf-8'))
+    } catch {
+      multiclass = null
+    }
+  }
+  return { classes, subclasses, multiclass }
 }

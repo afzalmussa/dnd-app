@@ -110,3 +110,28 @@ describe('level up plan', () => {
     expect(plan.warnings.join(' ')).toMatch(/Multiclass/)
   })
 })
+
+describe('multiclassing (2024 PHB pages 43-44)', () => {
+  it('counts full, half (round up) and third (round down) levels towards slots', async () => {
+    const { casterLevel } = await import('../../src/shared/rules/levelUp')
+    const rule = { full: ['Wizard'], half: ['Ranger'], third: { classes: ['Fighter'], subclasses: ['Eldritch Knight'] } }
+    // PHB example: Ranger 4 / Sorcerer 3 counts as caster level 5
+    expect(casterLevel([{ name: 'Ranger', level: 4, subclass: '' }, { name: 'Wizard', level: 3, subclass: '' }], rule)).toBe(5)
+    expect(casterLevel([{ name: 'Fighter', level: 7, subclass: 'Eldritch Knight' }], rule)).toBe(2)
+    expect(casterLevel([{ name: 'Fighter', level: 7, subclass: 'Champion' }], rule)).toBe(0)
+  })
+  it('requires 13 in the primary ability of the new and current classes', async () => {
+    const { multiclassProblems } = await import('../../src/shared/rules/levelUp')
+    const druid = { ...fakeClass(), name: 'Druid', primaryAbilities: ['wis' as const] }
+    const barb = { ...fakeClass(), name: 'Barbarian', primaryAbilities: ['str' as const] }
+    const c = makeCharacter((ch) => {
+      ch.abilityScores.str = 15
+      ch.abilityScores.wis = 12
+      ch.manualValues.classes = [{ name: 'Barbarian', subclass: '', level: 3, hitDie: 12 }]
+    })
+    // PHB example: a Barbarian multiclassing into Druid needs Strength and Wisdom of 13 or higher
+    expect(multiclassProblems(c, druid, [druid, barb], 13)).toEqual(['Druid needs WIS 13 or higher'])
+    c.abilityScores.wis = 13
+    expect(multiclassProblems(c, druid, [druid, barb], 13)).toEqual([])
+  })
+})

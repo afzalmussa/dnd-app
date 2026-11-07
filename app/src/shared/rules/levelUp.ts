@@ -27,12 +27,22 @@ export interface ClassData {
   hitDie: number | null
   subclassLevel: number | null
   spellcasting: { ability: Ability | null; casterType: string | null } | null
+  primaryAbilities?: Ability[]
+  primaryOr?: boolean // the book prints "Strength or Dexterity" rather than "and"
   progression: ProgressionRow[]
   features: FeatureData[]
 }
 export interface SubclassData { id: string; name: string; classId: string; ruleset: string; book: string; features: FeatureData[] }
 
+// From the PHB multiclassing pages (data-pack/phb24/multiclassing.json).
+export interface MulticlassData {
+  prerequisite: { minimumScore: number | null }
+  casterLevelRule: { full: string[]; half: string[]; third: { classes: string[]; subclasses: string[] } | null }
+  slotTable: { level: number; slots: number[] }[]
+}
+
 export interface RulesData {
+  multiclass?: MulticlassData | null
   classes: ClassData[]
   subclasses: SubclassData[]
   feats: FeatInfo[]
@@ -98,6 +108,33 @@ function highestSlotLevel(slots: (number | null)[] | null): number {
   let top = 0
   slots.forEach((n, i) => { if (n) top = i + 1 })
   return top
+}
+
+// Caster level for the multiclass spell slot table: full levels, half (rounded up) and a third (rounded down).
+export function casterLevel(classes: { name: string; level: number; subclass: string }[], rule: MulticlassData['casterLevelRule']): number {
+  const has = (list: string[], name: string) => list.some((n) => n.toLowerCase() === name.toLowerCase())
+  let total = 0
+  for (const c of classes) {
+    if (has(rule.full, c.name)) total += c.level
+    else if (has(rule.half, c.name)) total += Math.ceil(c.level / 2)
+    else if (rule.third && has(rule.third.classes, c.name) && has(rule.third.subclasses, c.subclass)) total += Math.floor(c.level / 3)
+  }
+  return total
+}
+
+// The score needed in the new class's primary ability (and each current class's) to multiclass.
+export function multiclassProblems(character: CharacterFile, newClass: ClassData, all: ClassData[], minimum: number): string[] {
+  const problems: string[] = []
+  const check = (cls: ClassData | undefined) => {
+    if (!cls?.primaryAbilities?.length) return
+    const ok = cls.primaryOr
+      ? cls.primaryAbilities.some((a) => character.abilityScores[a] >= minimum)
+      : cls.primaryAbilities.every((a) => character.abilityScores[a] >= minimum)
+    if (!ok) problems.push(`${cls.name} needs ${cls.primaryAbilities.map((a) => a.toUpperCase()).join(cls.primaryOr ? ' or ' : ' and ')} ${minimum} or higher`)
+  }
+  check(newClass)
+  for (const c of character.manualValues.classes.filter((x) => x.level > 0)) check(all.find((k) => k.name.toLowerCase() === c.name.toLowerCase()))
+  return problems
 }
 
 // What the new level brings and what the player has to choose.
@@ -174,12 +211,30 @@ export function planLevelUp(character: CharacterFile, cls: ClassData, data: Rule
   }
   if (!existing && character.manualValues.classes.some((c) => c.level > 0)) {
     requirements.push({ kind: 'note', id: rid('multiclass'), prompt: 'New class: write the proficiencies you gain and check the multiclass requirements in the PHB' })
-    warnings.push('Multiclass prerequisites and proficiencies are not imported yet; check them in the PHB.')
+    if (data.multiclass?.prerequisite.minimumScore) {
+      const bad = multiclassProblems(character, cls, data.classes, data.multiclass.prerequisite.minimumScore)
+      for (const b of bad) warnings.push(`Multiclass prerequisite not met: ${b}. The DM can override this.`)
+    }
+    warnings.push('You gain only some of the new class\'s starting proficiencies (PHB, Multiclassing). Write them in the box above.')
   }
   const casters = new Set(character.manualValues.classes.filter((c) => c.level > 0).map((c) => c.name.toLowerCase()))
   casters.add(cls.name.toLowerCase())
   const slotClasses = data.classes.filter((c) => casters.has(c.name.toLowerCase()) && c.progression.some((r) => r.spellSlots))
-  if (slotClasses.length > 1) warnings.push('More than one spellcasting class: spell slots follow the multiclass table, which is not imported yet. Set the slots on the Spells tab.')
+  let multiclassSlots: number[] | null = null
+  if (slotClasses.length > 1 || (data.multiclass && character.manualValues.classes.filter((c) => c.level > 0).length + (existing ? 0 : 1) > 1)) {
+    if (data.multiclass) {
+      const after = character.manualValues.classes.filter((c) => c.level > 0).map((c) => ({ ...c }))
+      const mine = after.find((c) => c.name.toLowerCase() === cls.name.toLowerCase())
+      if (mine) mine.level = newClassLevel
+      else after.push({ name: cls.name, subclass: '', level: newClassLevel, hitDie: cls.hitDie ?? 8 })
+      const level = casterLevel(after, data.multiclass.casterLevelRule)
+      const row = data.multiclass.slotTable.find((r) => r.level === level)
+      multiclassSlots = row ? row.slots : Array(9).fill(0)
+      warnings.push(`Spell slots follow the Multiclass Spellcaster table (caster level ${level}). Pact Magic slots from Warlock are separate.`)
+    } else if (slotClasses.length > 1) {
+      warnings.push('More than one spellcasting class: spell slots follow the multiclass table, which is not in the data pack. Set the slots on the Spells tab.')
+    }
+  }
 
   const tableChanges: TableChange[] = []
   for (const [column, value] of Object.entries(row.columns)) {
@@ -199,7 +254,7 @@ export function planLevelUp(character: CharacterFile, cls: ClassData, data: Rule
     features,
     requirements,
     proficiencyBonus: proficiencyBonusForLevel(totalBefore + 1),
-    slots: row.spellSlots && slotClasses.length <= 1 ? Array.from({ length: 9 }, (_, i) => row.spellSlots?.[i] ?? 0) : null,
+    slots: multiclassSlots ?? (row.spellSlots && slotClasses.length <= 1 ? Array.from({ length: 9 }, (_, i) => row.spellSlots?.[i] ?? 0) : null),
     tableChanges,
     warnings
   }

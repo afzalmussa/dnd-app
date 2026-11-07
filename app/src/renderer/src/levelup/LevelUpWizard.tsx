@@ -54,6 +54,7 @@ export function LevelUpWizard({ onClose }: { onClose: () => void }) {
     Promise.all([window.api.getClassData(), window.api.listFeats(), window.api.listSpells(), window.api.listItems()])
       .then(([classData, feats, spells, items]) => {
         setData({
+          multiclass: classData.multiclass as RulesData['multiclass'],
           classes: classData.classes as ClassData[],
           subclasses: classData.subclasses as SubclassData[],
           feats: feats.filter((f) => !f.supersededBy),
