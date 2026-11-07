@@ -1,6 +1,6 @@
 # Milestone 0: project layout and data schema
 
-Status: draft for approval. Nothing in here is built yet.
+Status: approved 2026-11-07, with the decisions in section 10.
 
 ## 1. How the pieces fit
 
@@ -217,6 +217,8 @@ interface Choice {
 
 ## 5. Character file schema
 
+> **Updated in Milestone 1.** The exact format now lives in `app/src/shared/schema/character.ts`, which is the source of truth. It differs from the sketch below in these ways: use counters live on each feature (`customEffects[].uses.used`) instead of a separate `resourcesUsed` map; there is a `proficiencies` block (saves, skills, armor, weapons, tools, languages) that holds hand-entered values now and DM/manual additions later; and `attacks`, `spellcasting`, `spells`, `defenses`, `senses`, `speciesName` and `backgroundName` were added so a character can be fully entered by hand before the data pack exists.
+
 One JSON file per character. The file stores what the player chose and what has happened in play. Things that can be worked out (proficiency bonus, save DC, AC, max slots) are calculated, not stored, so they can't drift out of sync. The one exception is Milestone 1 (see section 8).
 
 ```ts
@@ -258,12 +260,25 @@ interface CharacterFile {
   };
 
   customEffects: CustomEffect[];           // homebrew features, curses, conditions (section 6)
+  manualValues: ManualValues;              // hand-entered numbers, used instead of calculated ones
   dmOverrides: {
     featureLevels: Record<string, number>; // feature ID -> level it is gained at on this character
     replacedEntries: Record<string, string>; // swap one entry for another on this character
     modifiers: Modifier[];                 // DM adjustments to any stat
   };
   notes: { general: string; backstory: string; allies: string; [tab: string]: string };
+}
+
+// Any field set here wins over the calculated value. In Milestone 1 everything
+// is entered here by hand; from Milestone 3 most of it is calculated and these
+// stay empty unless someone wants a manual override.
+interface ManualValues {
+  classes: { name: string; subclass: string; level: number; hitDie: number }[];
+  maxHp: number | null;
+  proficiencyBonus: number | null;
+  armorClass: number | null;
+  speed: number | null;
+  initiativeBonus: number;                 // extra on top of Dex
 }
 
 interface LevelRecord {
@@ -305,7 +320,7 @@ type Duration =
   | { type: "permanent" }
   | { type: "untilRest"; rest: "short" | "long" }
   | { type: "rounds"; remaining: number }
-  | { type: "untilTime"; at: string };     // see open question 3
+  | { type: "untilTime"; at: number };     // in-game minutes since the campaign clock started
 
 // Small fixed list. New trigger types get added when a real case needs one.
 type Trigger =
@@ -361,4 +376,12 @@ Run per book: `python import_books.py --book phb24 --only classes:barbarian,cler
 - **Portraits embedded** in the character file (resized small), so a character copied through Google Drive keeps its picture.
 - **Content folder as a setting**, like the save folder. Point it at the shared Drive and your corrections reach your players.
 - **Import Books button** only shows when the app can find Python and the project folder (your PC). Players never see it.
-- **The data model allows multiclassing** (levels are stored per class), but the UI will be single class unless you say otherwise.
+- **Core sheet lists** (the six abilities and the skills with their abilities) live in `app/src/shared/coreRules.json`, not in code. The Milestone 2 import checks them against the PHB.
+
+## 10. Decisions after review
+
+- **Multiclassing is in scope.** Levels are stored per class (`LevelRecord.classId`), hit dice are pooled per die size, and the level-up wizard (Milestone 3) offers any class at each level, checking multiclass prerequisites and proficiencies from the imported PHB data. Spell slots for multiclass casters come from the PHB multiclass table, imported and validated like the class tables.
+- **Timed effects use an in-game clock set by the DM.** Game time is a count of minutes since the campaign started, shown as "Day 12, 21:30". The DM's app writes it to `campaign.json` in the shared save folder, and players' apps read it from there. When the clock passes an effect's `untilTime`, the effect ends (temp HP is cleared, modifiers stop applying). Rest and round durations still work as well. Built in Milestone 4, with the shared file in Milestone 5.
+- **Books in scope:** PHB 2024, Xanathar's, Tasha's and Giants only. The DMG, Monster Manual and Curse of Strahd files are out of scope and the import refuses any book not listed in `books.json`.
+- **Players never need the PDFs.** Everything the sheet and level-up wizard use is extracted into the data pack, which the build bundles. Page numbers stay on each entry for the DM to check against the book.
+- **Milestone 2 onwards runs in Claude Code on the DM's PC**, so the import can read the PDFs directly. Milestone 1 is built in the cloud session.
