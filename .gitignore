@@ -1,0 +1,16 @@
+# Your books and everything generated from them. Never commit these.
+PDFs/
+*.pdf
+data-pack/
+ocr-cache/
+reports/
+
+# Node / Electron build output
+node_modules/
+app/out/
+app/release/
+
+# Python
+__pycache__/
+.venv/
+.pytest_cache/
