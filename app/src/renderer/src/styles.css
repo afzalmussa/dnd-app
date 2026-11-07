@@ -279,3 +279,8 @@ button.link { background: none; border: none; color: inherit; text-decoration: u
 .pick-option.on { font-weight: bold; }
 .requirement { margin-bottom: 1rem; }
 .warning { color: #e0b050; } .error { color: #ff6b6b; }
+
+.feature-meta { display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; align-items: center; margin: 0.2rem 0; }
+.chip { background: #3a1d1d; border: 1px solid #8b2a2a; border-radius: 10px; padding: 0 0.5rem; font-size: 0.85em; }
+.play-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
+.modifier-row { display: flex; gap: 0.4rem; margin: 0.25rem 0; flex-wrap: wrap; }

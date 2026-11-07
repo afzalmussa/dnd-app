@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { formatBonus, initiativeBonus } from '../../../shared/rules/abilities'
 import { applyDamage, applyHealing, gainTempHp } from '../../../shared/rules/hitPoints'
+import { healTrigger } from '../../../shared/rules/effects'
 import { longRest, shortRest, spendHitDie } from '../../../shared/rules/rest'
 import { classLabel, hitDicePools, maxHp, totalLevel } from '../../../shared/rules/summary'
 import { CLASS_NAMES } from '../../../shared/coreRules'
@@ -15,6 +16,7 @@ export function TopBar() {
   const { character, update, editing, rollD20, rollDice } = useSheet()
   const [amount, setAmount] = useState<number | null>(null)
   const [levelingUp, setLevelingUp] = useState(false)
+  const [note, setNote] = useState('')
   const max = maxHp(character)
   const state = character.state
 
@@ -22,7 +24,17 @@ export function TopBar() {
     if (!amount || amount <= 0) return
     update((c) => {
       if (kind === 'damage') applyDamage(c, amount)
-      if (kind === 'heal') applyHealing(c, amount, max)
+      if (kind === 'heal') {
+        // A curse or boon can turn healing into damage (e.g. a vampire curse). Resistances are ignored if it says so.
+        const trigger = healTrigger(c)
+        if (trigger) {
+          applyDamage(c, amount)
+          setNote(`${trigger.effect.name}: the ${amount} healing dealt ${amount} damage instead${trigger.trigger.ignoreResistance ? ' (resistance ignored)' : ''}.`)
+        } else {
+          applyHealing(c, amount, max)
+          setNote('')
+        }
+      }
       if (kind === 'temp') gainTempHp(c, amount)
     })
     setAmount(null)
@@ -116,6 +128,7 @@ export function TopBar() {
           <button className="good" onClick={() => changeHp('heal')}>Heal</button>
           <button onClick={() => changeHp('temp')}>Temp</button>
         </div>
+        {note && <div className="warning small">{note}</div>}
         {state.hpCurrent === 0 && max > 0 && <DeathSaves />}
       </div>
 

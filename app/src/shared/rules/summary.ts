@@ -2,6 +2,7 @@
 
 import { mod } from './abilities'
 import type { CharacterFile } from '../schema/character'
+import { modifyNumber } from './effects'
 
 export function totalLevel(character: CharacterFile): number {
   return character.manualValues.classes.reduce((sum, c) => sum + c.level, 0)
@@ -34,11 +35,17 @@ export function hitDicePools(character: CharacterFile): HitDicePool[] {
 }
 
 export function maxHp(character: CharacterFile): number {
-  return character.manualValues.maxHp ?? 0
+  return modifyNumber(character.manualValues.maxHp ?? 0, 'hp.max', character)
 }
 
 // Hand-entered in Milestone 1. When not set, falls back to 10 + Dex (no armor);
 // armor from the inventory is calculated once item data exists.
 export function armorClass(character: CharacterFile): number {
-  return character.manualValues.armorClass ?? 10 + mod(character, 'dex')
+  return modifyNumber(character.manualValues.armorClass ?? 10 + mod(character, 'dex'), 'ac', character)
+}
+
+// Walking speed with modifiers (before Exhaustion, which the sheet applies on top).
+export function walkSpeed(character: CharacterFile): number | null {
+  const base = character.manualValues.speed
+  return base === null ? null : Math.max(0, modifyNumber(base, 'speed.walk', character))
 }

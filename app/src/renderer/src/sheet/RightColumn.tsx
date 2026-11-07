@@ -3,7 +3,8 @@
 import { clampExhaustion, effectiveSpeed, exhaustionSpeedPenalty } from '../../../shared/rules/exhaustion'
 import { CONDITIONS, DAMAGE_TYPES } from '../../../shared/coreRules'
 import { passivePerception } from '../../../shared/rules/abilities'
-import { armorClass } from '../../../shared/rules/summary'
+import { armorClass, walkSpeed } from '../../../shared/rules/summary'
+import { effectiveDefenses, effectiveSenses, resourceMax } from '../../../shared/rules/effects'
 import type { CharacterFile } from '../../../shared/schema/character'
 import { NumberInput, Section, TagList, UsesTracker } from '../common/Inputs'
 import { useSheet } from '../SheetContext'
@@ -12,7 +13,7 @@ const RESET_TEXT = { short: 'Short or long rest', long: 'Long rest', none: 'Does
 
 export function RightColumn() {
   const { character, update, editing } = useSheet()
-  const resources = character.customEffects.filter((e) => e.uses !== null)
+  const resources = character.customEffects.filter((e) => e.uses !== null && e.active)
 
   return (
     <div className="column right">
@@ -34,7 +35,7 @@ export function RightColumn() {
           {editing ? (
             <NumberInput value={character.manualValues.speed} onChange={(v) => update((c) => { c.manualValues.speed = v })} />
           ) : (
-            <span className="stat-value" title={character.state.exhaustion ? `Reduced by Exhaustion (-${exhaustionSpeedPenalty(character.state.exhaustion)} ft)` : undefined}>{effectiveSpeed(character.manualValues.speed, character.state.exhaustion) ?? '?'} ft</span>
+            <span className="stat-value" title={character.state.exhaustion ? `Reduced by Exhaustion (-${exhaustionSpeedPenalty(character.state.exhaustion)} ft)` : undefined}>{effectiveSpeed(walkSpeed(character), character.state.exhaustion) ?? '?'} ft</span>
           )}
         </div>
       </div>
@@ -45,8 +46,8 @@ export function RightColumn() {
           <div className="resource" key={effect.id}>
             <div className="resource-name">{effect.name}</div>
             <UsesTracker
-              max={effect.uses!.max}
-              used={effect.uses!.used}
+              max={resourceMax(character, effect)}
+              used={Math.min(effect.uses!.used, resourceMax(character, effect))}
               label={effect.name}
               onChange={(used) =>
                 update((c) => {
@@ -60,6 +61,9 @@ export function RightColumn() {
       </Section>
 
       <Section title="Defenses">
+        {(['resistances', 'immunities', 'vulnerabilities'] as const).some((k) => effectiveDefenses(character)[k].length > character.defenses[k].length) && (
+          <p className="muted small">Includes defenses from active features (shown in the Features tab).</p>
+        )}
         <DefenseList label="Resistances" field="resistances" options={DAMAGE_TYPES} />
         {/* Immunity can be to a damage type or to a condition. */}
         <DefenseList label="Immunities" field="immunities" options={[...DAMAGE_TYPES, ...CONDITIONS.filter((c) => c !== 'Exhaustion')]} />
@@ -91,7 +95,7 @@ export function RightColumn() {
           Passive Perception <strong>{passivePerception(character)}</strong>
         </div>
         <TagList
-          items={character.senses}
+          items={editing ? character.senses : effectiveSenses(character)}
           editable={editing}
           placeholder="e.g. Darkvision 60 ft"
           onChange={(items) => update((c) => { c.senses = items })}
@@ -107,7 +111,7 @@ function DefenseList(props: { label: string; field: keyof CharacterFile['defense
     <div className="proficiency-list">
       <div className="small-label">{props.label}</div>
       <TagList
-        items={character.defenses[props.field]}
+        items={editing ? character.defenses[props.field] : effectiveDefenses(character)[props.field]}
         options={props.options}
         editable={editing}
         onChange={(items) => update((c) => { c.defenses[props.field] = items })}

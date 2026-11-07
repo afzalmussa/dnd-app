@@ -2,6 +2,7 @@
 
 import { SKILLS } from '../coreRules'
 import type { Ability, CharacterFile } from '../schema/character'
+import { bonusFor, effectiveAbilityScore } from './effects'
 
 // Score 10-11 gives +0, 12-13 gives +1, 8-9 gives -1, and so on.
 export function abilityModifier(score: number): number {
@@ -9,7 +10,7 @@ export function abilityModifier(score: number): number {
 }
 
 export function mod(character: CharacterFile, ability: Ability): number {
-  return abilityModifier(character.abilityScores[ability])
+  return abilityModifier(effectiveAbilityScore(character, ability))
 }
 
 // Shows a bonus the way the books print it: +3, +0, -1.
@@ -29,7 +30,7 @@ export function isSaveProficient(character: CharacterFile, ability: Ability): bo
 
 export function saveBonus(character: CharacterFile, ability: Ability): number {
   const proficiency = isSaveProficient(character, ability) ? proficiencyBonus(character) : 0
-  return mod(character, ability) + proficiency
+  return mod(character, ability) + proficiency + bonusFor(`save.${ability}`, character)
 }
 
 export function skillProficiency(character: CharacterFile, skillId: string) {
@@ -42,7 +43,7 @@ export function skillBonus(character: CharacterFile, skillId: string): number {
   const level = skillProficiency(character, skillId)
   const pb = proficiencyBonus(character)
   const proficiency = level === 'expertise' ? pb * 2 : level === 'proficient' ? pb : 0
-  return mod(character, skill.ability) + proficiency
+  return mod(character, skill.ability) + proficiency + bonusFor(`skill.${skillId}`, character)
 }
 
 export function passivePerception(character: CharacterFile): number {
@@ -50,5 +51,5 @@ export function passivePerception(character: CharacterFile): number {
 }
 
 export function initiativeBonus(character: CharacterFile): number {
-  return mod(character, 'dex') + character.manualValues.initiativeBonus
+  return mod(character, 'dex') + character.manualValues.initiativeBonus + bonusFor('initiative', character)
 }

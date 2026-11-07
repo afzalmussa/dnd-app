@@ -187,4 +187,6 @@ export interface PlayState {
   conditions: string[]
   spellSlotsUsed: number[] // same indexing as slotsMax
   toggles: Record<string, boolean>
+  // In-game minutes since the campaign started (the DM's clock; see effects.ts). Missing means 0.
+  gameMinutes?: number
 }
