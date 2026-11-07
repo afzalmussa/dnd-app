@@ -54,23 +54,37 @@ export function TextInput(props: {
 }
 
 // A list of short labels (languages, resistances, conditions). When editable,
-// each has a remove button and new ones are added by typing and pressing Enter.
+// each has a remove button. New ones are picked from `options` in a dropdown
+// (with "Other…" for anything not listed), or typed and added with Enter when
+// there are no options.
 export function TagList(props: {
   items: string[]
   onChange: (items: string[]) => void
   editable: boolean
+  options?: string[]
   placeholder?: string
   emptyText?: string
 }) {
-  const { items, onChange, editable, placeholder, emptyText } = props
+  const { items, onChange, editable, options, placeholder, emptyText } = props
   const [draft, setDraft] = useState('')
+  const [typing, setTyping] = useState(false)
+  const remaining = (options ?? []).filter((o) => !items.includes(o))
 
-  function add(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'Enter') return
-    const value = draft.trim()
-    if (value && !items.includes(value)) onChange([...items, value])
-    setDraft('')
+  function addItem(value: string) {
+    const trimmed = value.trim()
+    if (trimmed && !items.includes(trimmed)) onChange([...items, trimmed])
   }
+
+  function addTyped(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') {
+      addItem(draft)
+      setDraft('')
+      if (options) setTyping(false)
+    }
+    if (event.key === 'Escape') setTyping(false)
+  }
+
+  const showDropdown = editable && options !== undefined && !typing
 
   return (
     <div className="tag-list">
@@ -85,16 +99,68 @@ export function TagList(props: {
           )}
         </span>
       ))}
-      {editable && (
+      {showDropdown && (
+        <select
+          className="tag-select"
+          value=""
+          onChange={(e) => (e.target.value === OTHER ? setTyping(true) : addItem(e.target.value))}
+        >
+          <option value="">{placeholder ?? 'Add…'}</option>
+          {remaining.map((o) => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+          <option value={OTHER}>Other (type it)…</option>
+        </select>
+      )}
+      {editable && !showDropdown && (
         <input
           className="tag-input"
           value={draft}
-          placeholder={placeholder ?? 'Add…'}
+          autoFocus={typing}
+          placeholder={typing ? 'Type, then Enter' : placeholder ?? 'Add…'}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={add}
+          onKeyDown={addTyped}
+          onBlur={() => draft === '' && setTyping(false)}
         />
       )}
     </div>
+  )
+}
+
+const OTHER = '__other__'
+
+// A single value picked from a list, with "Other…" to type something not
+// listed. With no options (e.g. subclasses before the book import) it is a
+// plain text box.
+export function ChoiceInput(props: { value: string; options: string[]; onChange: (value: string) => void; placeholder?: string }) {
+  const { value, options, onChange, placeholder } = props
+  const isCustom = value !== '' && !options.includes(value)
+  const [typing, setTyping] = useState(isCustom)
+  // A value that is not in the list (homebrew, or another character opened) shows as typed text.
+  useEffect(() => {
+    if (isCustom) setTyping(true)
+  }, [isCustom])
+
+  if (options.length === 0 || typing) {
+    return (
+      <span className="choice-input">
+        <TextInput value={value} placeholder={placeholder} onChange={onChange} />
+        {options.length > 0 && (
+          <button className="small" title="Pick from the list" onClick={() => { setTyping(false); if (isCustom) onChange('') }}>
+            List
+          </button>
+        )}
+      </span>
+    )
+  }
+  return (
+    <select className="choice-select" value={value} onChange={(e) => (e.target.value === OTHER ? setTyping(true) : onChange(e.target.value))}>
+      <option value="">{placeholder ?? 'Choose…'}</option>
+      {options.map((o) => (
+        <option key={o} value={o}>{o}</option>
+      ))}
+      <option value={OTHER}>Other (type it)…</option>
+    </select>
   )
 }
 

@@ -1,31 +1,167 @@
 {
-  "_note": "Lists every sheet needs. The Milestone 2 import checks these against the PHB.",
+  "_note": "Short name lists every sheet needs. Names only, no rules text. The Milestone 2 import checks each list against the PHB and reports any difference. Subclasses are not listed here: they come from the book import.",
   "abilities": [
-    { "id": "str", "name": "Strength" },
-    { "id": "dex", "name": "Dexterity" },
-    { "id": "con", "name": "Constitution" },
-    { "id": "int", "name": "Intelligence" },
-    { "id": "wis", "name": "Wisdom" },
-    { "id": "cha", "name": "Charisma" }
+    {
+      "id": "str",
+      "name": "Strength"
+    },
+    {
+      "id": "dex",
+      "name": "Dexterity"
+    },
+    {
+      "id": "con",
+      "name": "Constitution"
+    },
+    {
+      "id": "int",
+      "name": "Intelligence"
+    },
+    {
+      "id": "wis",
+      "name": "Wisdom"
+    },
+    {
+      "id": "cha",
+      "name": "Charisma"
+    }
   ],
   "skills": [
-    { "id": "acrobatics", "name": "Acrobatics", "ability": "dex" },
-    { "id": "animal-handling", "name": "Animal Handling", "ability": "wis" },
-    { "id": "arcana", "name": "Arcana", "ability": "int" },
-    { "id": "athletics", "name": "Athletics", "ability": "str" },
-    { "id": "deception", "name": "Deception", "ability": "cha" },
-    { "id": "history", "name": "History", "ability": "int" },
-    { "id": "insight", "name": "Insight", "ability": "wis" },
-    { "id": "intimidation", "name": "Intimidation", "ability": "cha" },
-    { "id": "investigation", "name": "Investigation", "ability": "int" },
-    { "id": "medicine", "name": "Medicine", "ability": "wis" },
-    { "id": "nature", "name": "Nature", "ability": "int" },
-    { "id": "perception", "name": "Perception", "ability": "wis" },
-    { "id": "performance", "name": "Performance", "ability": "cha" },
-    { "id": "persuasion", "name": "Persuasion", "ability": "cha" },
-    { "id": "religion", "name": "Religion", "ability": "int" },
-    { "id": "sleight-of-hand", "name": "Sleight of Hand", "ability": "dex" },
-    { "id": "stealth", "name": "Stealth", "ability": "dex" },
-    { "id": "survival", "name": "Survival", "ability": "wis" }
+    {
+      "id": "acrobatics",
+      "name": "Acrobatics",
+      "ability": "dex"
+    },
+    {
+      "id": "animal-handling",
+      "name": "Animal Handling",
+      "ability": "wis"
+    },
+    {
+      "id": "arcana",
+      "name": "Arcana",
+      "ability": "int"
+    },
+    {
+      "id": "athletics",
+      "name": "Athletics",
+      "ability": "str"
+    },
+    {
+      "id": "deception",
+      "name": "Deception",
+      "ability": "cha"
+    },
+    {
+      "id": "history",
+      "name": "History",
+      "ability": "int"
+    },
+    {
+      "id": "insight",
+      "name": "Insight",
+      "ability": "wis"
+    },
+    {
+      "id": "intimidation",
+      "name": "Intimidation",
+      "ability": "cha"
+    },
+    {
+      "id": "investigation",
+      "name": "Investigation",
+      "ability": "int"
+    },
+    {
+      "id": "medicine",
+      "name": "Medicine",
+      "ability": "wis"
+    },
+    {
+      "id": "nature",
+      "name": "Nature",
+      "ability": "int"
+    },
+    {
+      "id": "perception",
+      "name": "Perception",
+      "ability": "wis"
+    },
+    {
+      "id": "performance",
+      "name": "Performance",
+      "ability": "cha"
+    },
+    {
+      "id": "persuasion",
+      "name": "Persuasion",
+      "ability": "cha"
+    },
+    {
+      "id": "religion",
+      "name": "Religion",
+      "ability": "int"
+    },
+    {
+      "id": "sleight-of-hand",
+      "name": "Sleight of Hand",
+      "ability": "dex"
+    },
+    {
+      "id": "stealth",
+      "name": "Stealth",
+      "ability": "dex"
+    },
+    {
+      "id": "survival",
+      "name": "Survival",
+      "ability": "wis"
+    }
+  ],
+  "classes": [
+    "Barbarian",
+    "Bard",
+    "Cleric",
+    "Druid",
+    "Fighter",
+    "Monk",
+    "Paladin",
+    "Ranger",
+    "Rogue",
+    "Sorcerer",
+    "Warlock",
+    "Wizard"
+  ],
+  "damageTypes": [
+    "Acid",
+    "Bludgeoning",
+    "Cold",
+    "Fire",
+    "Force",
+    "Lightning",
+    "Necrotic",
+    "Piercing",
+    "Poison",
+    "Psychic",
+    "Radiant",
+    "Slashing",
+    "Thunder"
+  ],
+  "conditions": [
+    "Blinded",
+    "Charmed",
+    "Deafened",
+    "Exhaustion",
+    "Frightened",
+    "Grappled",
+    "Incapacitated",
+    "Invisible",
+    "Paralyzed",
+    "Petrified",
+    "Poisoned",
+    "Prone",
+    "Restrained",
+    "Stunned",
+    "Unconscious"
   ]
 }

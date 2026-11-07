@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CharacterFileError, createBlankCharacter, fileNameFor, normalizeCharacter } from '../../src/shared/character'
-import { ABILITIES, SKILLS } from '../../src/shared/coreRules'
+import { ABILITIES, CLASS_NAMES, CONDITIONS, DAMAGE_TYPES, SKILLS } from '../../src/shared/coreRules'
 
 describe('normalizeCharacter', () => {
   it('round-trips a blank character through JSON unchanged', () => {
@@ -42,5 +42,16 @@ describe('coreRules.json', () => {
     expect(ABILITIES.map((a) => a.id)).toEqual(['str', 'dex', 'con', 'int', 'wis', 'cha'])
     const ids = new Set(ABILITIES.map((a) => a.id))
     for (const skill of SKILLS) expect(ids.has(skill.ability)).toBe(true)
+  })
+})
+
+describe('coreRules.json name lists', () => {
+  it.each([
+    ['classes', CLASS_NAMES],
+    ['damage types', DAMAGE_TYPES],
+    ['conditions', CONDITIONS]
+  ])('%s are non-empty and have no duplicates', (_label, list) => {
+    expect(list.length).toBeGreaterThan(0)
+    expect(new Set(list).size).toBe(list.length)
   })
 })

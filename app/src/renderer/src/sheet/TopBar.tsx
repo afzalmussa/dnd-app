@@ -5,7 +5,8 @@ import { formatBonus, initiativeBonus } from '../../../shared/rules/abilities'
 import { applyDamage, applyHealing, gainTempHp } from '../../../shared/rules/hitPoints'
 import { longRest, shortRest, spendHitDie } from '../../../shared/rules/rest'
 import { classLabel, hitDicePools, maxHp, totalLevel } from '../../../shared/rules/summary'
-import { NumberInput, TextInput, UsesTracker } from '../common/Inputs'
+import { CLASS_NAMES } from '../../../shared/coreRules'
+import { ChoiceInput, NumberInput, TextInput, UsesTracker } from '../common/Inputs'
 import { useSheet } from '../SheetContext'
 import { resizeImage } from './portrait'
 
@@ -186,8 +187,14 @@ function ClassEditor() {
     <div className="class-editor">
       {character.manualValues.classes.map((cls, i) => (
         <div className="class-row" key={i}>
-          <label>Class <TextInput value={cls.name} onChange={(v) => update((c) => { c.manualValues.classes[i].name = v })} /></label>
-          <label>Subclass <TextInput value={cls.subclass} onChange={(v) => update((c) => { c.manualValues.classes[i].subclass = v })} /></label>
+          <label>
+            Class
+            <ChoiceInput value={cls.name} options={CLASS_NAMES} onChange={(v) => update((c) => { c.manualValues.classes[i].name = v })} />
+          </label>
+          <label title="The subclass list arrives with the book import (Milestone 2). Type it for now.">
+            Subclass
+            <ChoiceInput value={cls.subclass} options={[]} onChange={(v) => update((c) => { c.manualValues.classes[i].subclass = v })} />
+          </label>
           <label>
             Lvl
             <NumberInput value={cls.level} min={1} max={20} onChange={(v) => update((c) => { c.manualValues.classes[i].level = v ?? 1 })} />

@@ -1,5 +1,6 @@
 // Right column: AC, speed, resources, defenses, conditions, senses.
 
+import { CONDITIONS, DAMAGE_TYPES } from '../../../shared/coreRules'
 import { passivePerception } from '../../../shared/rules/abilities'
 import { armorClass } from '../../../shared/rules/summary'
 import type { CharacterFile } from '../../../shared/schema/character'
@@ -58,9 +59,10 @@ export function RightColumn() {
       </Section>
 
       <Section title="Defenses">
-        <DefenseList label="Resistances" field="resistances" />
-        <DefenseList label="Immunities" field="immunities" />
-        <DefenseList label="Vulnerabilities" field="vulnerabilities" />
+        <DefenseList label="Resistances" field="resistances" options={DAMAGE_TYPES} />
+        {/* Immunity can be to a damage type or to a condition. */}
+        <DefenseList label="Immunities" field="immunities" options={[...DAMAGE_TYPES, ...CONDITIONS.filter((c) => c !== 'Exhaustion')]} />
+        <DefenseList label="Vulnerabilities" field="vulnerabilities" options={DAMAGE_TYPES} />
       </Section>
 
       <Section title="Conditions">
@@ -68,6 +70,8 @@ export function RightColumn() {
         <TagList
           items={character.state.conditions}
           editable
+          // Exhaustion has its own level counter below, so it is not in this list.
+          options={CONDITIONS.filter((c) => c !== 'Exhaustion')}
           placeholder="Add condition…"
           onChange={(items) => update((c) => { c.state.conditions = items })}
         />
@@ -96,13 +100,14 @@ export function RightColumn() {
   )
 }
 
-function DefenseList(props: { label: string; field: keyof CharacterFile['defenses'] }) {
+function DefenseList(props: { label: string; field: keyof CharacterFile['defenses']; options: string[] }) {
   const { character, update, editing } = useSheet()
   return (
     <div className="proficiency-list">
       <div className="small-label">{props.label}</div>
       <TagList
         items={character.defenses[props.field]}
+        options={props.options}
         editable={editing}
         onChange={(items) => update((c) => { c.defenses[props.field] = items })}
       />

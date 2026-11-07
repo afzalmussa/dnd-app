@@ -33,6 +33,24 @@ function createWindow(): BrowserWindow {
     }
   })
 
+  // The only extra window the app opens is the popped-out roll log, which is a
+  // blank window the page draws into. Any other new-window request is refused.
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    if (url === 'about:blank' || url === '') {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          title: 'Roll Log',
+          autoHideMenuBar: true,
+          backgroundColor: '#110d0e',
+          minWidth: 320,
+          minHeight: 200
+        }
+      }
+    }
+    return { action: 'deny' }
+  })
+
   // In development electron-vite serves the UI with live reload; in a build
   // it is a plain HTML file next to this script.
   if (process.env.ELECTRON_RENDERER_URL) {

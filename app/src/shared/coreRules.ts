@@ -16,3 +16,7 @@ export interface SkillInfo {
 
 export const ABILITIES = data.abilities as AbilityInfo[]
 export const SKILLS = data.skills as SkillInfo[]
+
+export const CLASS_NAMES: string[] = data.classes
+export const DAMAGE_TYPES: string[] = data.damageTypes
+export const CONDITIONS: string[] = data.conditions

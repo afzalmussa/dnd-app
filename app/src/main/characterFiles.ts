@@ -2,7 +2,7 @@
 
 import { existsSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
-import { fileNameFor, normalizeCharacter } from '../shared/character'
+import { fileNameFor, newId, normalizeCharacter } from '../shared/character'
 import type { CharacterListEntry, LoadResult } from '../shared/api'
 import { classLabel } from '../shared/rules/summary'
 import type { CharacterFile } from '../shared/schema/character'
@@ -65,17 +65,31 @@ export function deleteCharacter(fileName: string): void {
   rmSync(pathInSaveFolder(fileName), { force: true })
 }
 
-// Copies an outside file into the save folder. If a file with that name is
-// already there (for example the same character imported twice), the copy
-// gets "-imported-2" and so on, so nothing is overwritten.
-export function importCharacterFrom(path: string): { fileName: string } | { error: string } {
+// Copies an outside file into the save folder.
+// If a character with the same id is already there (for example the same
+// file imported twice), the import becomes a separate copy: it gets a new id
+// and "(copy)" after its name. Without that, saving the copy would overwrite
+// the original, because the file name is built from the name and id.
+export function importCharacterFrom(path: string): { fileName: string; copied: boolean } | { error: string } {
   const result = readCharacterFile(path)
   if (!result.ok) return { error: result.error }
-  const base = fileNameFor(result.character).replace(/\.json$/, '')
-  let fileName = `${base}.json`
-  for (let n = 2; existsSync(pathInSaveFolder(fileName)); n++) {
-    fileName = `${base}-imported-${n}.json`
+  const character = result.character
+  const copied = existingIds().has(character.id)
+  if (copied) {
+    character.id = newId()
+    character.name = `${character.name} (copy)`
   }
-  writeCharacterFile(pathInSaveFolder(fileName), result.character)
-  return { fileName }
+  const fileName = fileNameFor(character)
+  writeCharacterFile(pathInSaveFolder(fileName), character)
+  return { fileName, copied }
+}
+
+function existingIds(): Set<string> {
+  const ids = new Set<string>()
+  const folder = getSaveFolder()
+  for (const fileName of readdirSync(folder).filter((name) => name.endsWith('.json'))) {
+    const result = readCharacterFile(join(folder, fileName))
+    if (result.ok) ids.add(result.character.id)
+  }
+  return ids
 }

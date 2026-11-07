@@ -5,10 +5,13 @@ import { createBlankCharacter } from '../../shared/character'
 import type { RollMode } from '../../shared/rules/dice'
 import type { CharacterFile } from '../../shared/schema/character'
 import { CharacterPicker } from './CharacterPicker'
-import { RollLog } from './RollLog'
+import { PopoutWindow } from './PopoutWindow'
+import { ResizeHandle } from './ResizeHandle'
+import { RollLog, type DockPosition } from './RollLog'
 import { d20Entry, diceEntry, type RollEntry } from './rolls'
 import { Sheet } from './sheet/Sheet'
 import { SheetContext, type SheetContextValue } from './SheetContext'
+import { useStoredState } from './storedState'
 
 type SaveStatus = 'saved' | 'saving' | 'unsaved' | { error: string }
 
@@ -23,6 +26,25 @@ export default function App() {
   const [message, setMessage] = useState<string | null>(null)
   const [rolls, setRolls] = useState<RollEntry[]>([])
   const [rollMode, setRollMode] = useState<RollMode>('normal')
+
+  // Where the roll log sits and how big it is, remembered between sessions.
+  const [dock, setDock] = useStoredState<DockPosition>('rollLog.dock', 'bottom')
+  const [logSize, setLogSize] = useStoredState('rollLog.size', { bottom: 180, right: 380 })
+  const [logCollapsed, setLogCollapsed] = useStoredState('rollLog.collapsed', false)
+  const workspace = useRef<HTMLDivElement>(null)
+
+  // Called while the resize bar is dragged. The log's new size is the distance
+  // from the pointer to the bottom (or right) edge of the window, kept within limits.
+  function resizeLog(pointer: { x: number; y: number }) {
+    const area = workspace.current!.getBoundingClientRect()
+    if (dock === 'bottom') {
+      const height = Math.min(Math.max(area.bottom - pointer.y, 80), area.height * 0.8)
+      setLogSize({ ...logSize, bottom: Math.round(height) })
+    } else {
+      const width = Math.min(Math.max(area.right - pointer.x, 240), area.width * 0.7)
+      setLogSize({ ...logSize, right: Math.round(width) })
+    }
+  }
 
   // Changes since the last save. A ref, not state, because changing it should
   // not redraw the screen; it only tells the autosave whether to run.
@@ -100,24 +122,51 @@ export default function App() {
     setEditing(true)
   }
 
+  // Import and Export open Windows file dialogs through the main process.
+  // Any failure is shown in the message bar rather than failing silently.
   async function importFile() {
-    const result = await window.api.importCharacter()
-    if (!result) return
-    if ('error' in result) {
-      setMessage(`Import failed: ${result.error}`)
-      return
+    try {
+      const result = await window.api.importCharacter()
+      if (!result) return // dialog cancelled
+      if ('error' in result) {
+        setMessage(`Import failed: ${result.error}`)
+        return
+      }
+      await open(result.fileName)
+      setMessage(
+        result.copied
+          ? 'That character is already in your folder, so it was imported as a separate copy with "(copy)" after its name.'
+          : `Imported ${result.fileName}.`
+      )
+    } catch (error) {
+      setMessage(`Import failed: ${(error as Error).message}`)
     }
-    await open(result.fileName)
-    setMessage(`Imported as ${result.fileName}.`)
   }
 
   async function exportFile() {
     if (!character) return
-    const path = await window.api.exportCharacter(character)
-    if (path) setMessage(`Exported to ${path}`)
+    try {
+      const path = await window.api.exportCharacter(character)
+      if (path) setMessage(`Exported to ${path}`)
+    } catch (error) {
+      setMessage(`Export failed: ${(error as Error).message}`)
+    }
   }
 
   const context: SheetContextValue | null = character && { character, update, editing, rollD20, rollDice }
+
+  const rollLog = (
+    <RollLog
+      entries={rolls}
+      mode={rollMode}
+      onModeChange={setRollMode}
+      onClear={() => setRolls([])}
+      dock={dock}
+      onDockChange={setDock}
+      collapsed={logCollapsed}
+      onCollapsedChange={setLogCollapsed}
+    />
+  )
 
   return (
     <div className="app">
@@ -144,17 +193,33 @@ export default function App() {
         </div>
       )}
 
-      <main className="main">
-        {context ? (
-          <SheetContext.Provider value={context}>
-            <Sheet />
-          </SheetContext.Provider>
-        ) : (
-          !showPicker && <p className="muted">No character open.</p>
-        )}
-      </main>
+      <div ref={workspace} className={`workspace dock-${dock}`}>
+        <main className="main">
+          {context ? (
+            <SheetContext.Provider value={context}>
+              <Sheet />
+            </SheetContext.Provider>
+          ) : (
+            !showPicker && <p className="muted">No character open.</p>
+          )}
+        </main>
 
-      <RollLog entries={rolls} mode={rollMode} onModeChange={setRollMode} onClear={() => setRolls([])} />
+        {dock === 'window' ? (
+          <PopoutWindow title="Roll Log" onClose={() => setDock('bottom')}>
+            {rollLog}
+          </PopoutWindow>
+        ) : (
+          <>
+            {!logCollapsed && <ResizeHandle direction={dock === 'bottom' ? 'vertical' : 'horizontal'} onResize={resizeLog} />}
+            <div
+              className="log-slot"
+              style={logCollapsed ? undefined : dock === 'bottom' ? { height: logSize.bottom } : { width: logSize.right }}
+            >
+              {rollLog}
+            </div>
+          </>
+        )}
+      </div>
 
       {showPicker && (
         <CharacterPicker

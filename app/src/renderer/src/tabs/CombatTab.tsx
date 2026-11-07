@@ -2,12 +2,12 @@
 // grouped by how they are used (action, bonus action, reaction, free).
 
 import { newId } from '../../../shared/character'
-import { ABILITIES } from '../../../shared/coreRules'
+import { ABILITIES, DAMAGE_TYPES } from '../../../shared/coreRules'
 import { formatBonus } from '../../../shared/rules/abilities'
 import { attackBonus, damageExpression } from '../../../shared/rules/attacks'
 import type { Ability, Attack } from '../../../shared/schema/character'
 import type { Activation } from '../../../shared/schema/effects'
-import { NumberInput, Section, TextInput, UsesTracker } from '../common/Inputs'
+import { ChoiceInput, NumberInput, Section, TextInput, UsesTracker } from '../common/Inputs'
 import { useSheet } from '../SheetContext'
 
 const ACTION_GROUPS: { activation: Activation; title: string }[] = [
@@ -144,7 +144,7 @@ function AttackEditor() {
             </label>
             <label>Extra to hit <NumberInput value={attack.attackBonusExtra} onChange={(v) => set(i, (a) => { a.attackBonusExtra = v ?? 0 })} /></label>
             <label>Damage dice <TextInput value={attack.damage} placeholder="1d8" onChange={(v) => set(i, (a) => { a.damage = v })} /></label>
-            <label>Damage type <TextInput value={attack.damageType} onChange={(v) => set(i, (a) => { a.damageType = v })} /></label>
+            <label>Damage type <ChoiceInput value={attack.damageType} options={DAMAGE_TYPES} onChange={(v) => set(i, (a) => { a.damageType = v })} /></label>
             <label className="checkbox">
               <input type="checkbox" checked={attack.addAbilityToDamage} onChange={(e) => set(i, (a) => { a.addAbilityToDamage = e.target.checked })} />
               Add ability to damage

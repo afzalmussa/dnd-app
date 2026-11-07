@@ -23,5 +23,5 @@ export interface AppApi {
   deleteCharacter(fileName: string): Promise<void>
   // Both open a Windows file dialog. They return null if the user cancels.
   exportCharacter(character: CharacterFile): Promise<string | null>
-  importCharacter(): Promise<{ fileName: string } | { error: string } | null>
+  importCharacter(): Promise<{ fileName: string; copied: boolean } | { error: string } | null>
 }
