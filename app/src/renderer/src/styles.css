@@ -295,3 +295,13 @@ button.link { background: none; border: none; color: inherit; text-decoration: u
 .chip.warn { border-color: #e0b050; }
 .json-editor { width: 100%; font-family: Consolas, monospace; font-size: 0.85em; }
 .editor-actions { display: flex; gap: 0.8rem; align-items: center; margin-top: 0.6rem; }
+
+.spell-row-wide { display: grid; grid-template-columns: 1.4rem 11rem 7.5rem 7rem 9rem 10rem 1fr auto; gap: 0 0.7rem; align-items: baseline; padding: 0.15rem 0; }
+.spell-cell { font-size: 0.9em; }
+.spell-what { font-size: 0.9em; }
+.spell-checkbox-gap { display: inline-block; width: 1.4rem; }
+.spell-name-wrap { position: relative; display: inline-block; }
+.spell-popup { display: none; position: absolute; left: 0; top: 1.6rem; z-index: 60; width: 28rem; max-width: 80vw; padding: 0.7rem 0.9rem; background: #1d1416; border: 1px solid #8b2a2a; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); font-weight: normal; }
+.spell-name-wrap:hover .spell-popup { display: block; }
+.spell-popup p { margin: 0.4rem 0; }
+.spell-details { margin-left: 2.1rem; }

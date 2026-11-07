@@ -9,14 +9,41 @@ import { ABILITIES } from '../../../shared/coreRules'
 import { formatBonus } from '../../../shared/rules/abilities'
 import { detailsFromSpell, spellKey } from '../../../shared/rules/spellData'
 import { spellAttackBonus, spellSaveDC } from '../../../shared/rules/spellcasting'
-import type { Ability, SpellEntry } from '../../../shared/schema/character'
+import type { Ability, SpellDetails, SpellEntry } from '../../../shared/schema/character'
 import { NumberInput, Section, TextInput, UsesTracker } from '../common/Inputs'
 import { useSheet } from '../SheetContext'
 
 const LEVEL_NAMES = ['Cantrips', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th']
 
-function SpellDetailsView({ spell }: { spell: SpellEntry }) {
-  const d = spell.details
+function firstSentence(text: string, max = 150): string {
+  const m = text.match(/^(.+?[.!?])(\s|$)/)
+  const sentence = m ? m[1] : text
+  return sentence.length > max ? `${sentence.slice(0, max - 1)}…` : sentence
+}
+
+// The popup that appears when you hover a spell name.
+function SpellPopup({ spell, details }: { spell: SpellEntry; details: SpellDetails }) {
+  return (
+    <div className="spell-popup" role="tooltip">
+      <strong>{spell.name}</strong>
+      <div className="muted small">
+        {spell.level === 0 ? `${details.school} cantrip` : `Level ${spell.level} ${details.school}`}
+        {details.concentration ? ' · Concentration' : ''}{details.ritual ? ' · Ritual' : ''}
+      </div>
+      <div className="spell-facts">
+        <span><b>Casting time</b> {details.castingTime}</span>
+        <span><b>Range</b> {details.range}</span>
+        <span><b>Components</b> {details.components}</span>
+        <span><b>Duration</b> {details.duration}</span>
+      </div>
+      <p>{details.description}</p>
+      {details.higherLevels && <p><b>At higher levels.</b> {details.higherLevels}</p>}
+      <div className="muted small">{details.classes.join(', ')} · {details.source}</div>
+    </div>
+  )
+}
+
+function SpellDetailsView({ details: d }: { details: SpellDetails | undefined }) {
   if (!d) return null
   return (
     <div className="spell-details">
@@ -173,24 +200,34 @@ export function SpellsTab() {
                   </div>
                 ) : (
                   <div className="spell-block" key={spell.id}>
-                    <div className="spell-row">
-                      {level > 0 && (
-                        <input
-                          type="checkbox"
-                          title="Prepared"
-                          checked={spell.prepared}
-                          onChange={(e) => update((c) => { c.spells[index].prepared = e.target.checked })}
-                        />
-                      )}
-                      <button className="link" onClick={() => setOpen(open === spell.id ? null : spell.id)}>{spell.name}</button>
-                      {spell.details && (
-                        <span className="muted spell-summary">
-                          {spell.details.castingTime} · {spell.details.range} · {spell.details.components} · {spell.details.duration}
-                        </span>
-                      )}
-                      <span className="muted">{spell.notes}</span>
-                    </div>
-                    {open === spell.id && <SpellDetailsView spell={spell} />}
+                    {(() => {
+                      const details = spell.details ?? (byKey.get(spellKey(spell.name)) ? detailsFromSpell(byKey.get(spellKey(spell.name))!) : undefined)
+                      return (
+                        <>
+                          <div className="spell-row spell-row-wide">
+                            {level > 0 ? (
+                              <input type="checkbox" title="Prepared" checked={spell.prepared}
+                                onChange={(e) => update((c) => { c.spells[index].prepared = e.target.checked })} />
+                            ) : <span className="spell-checkbox-gap" />}
+                            <span className="spell-name-wrap">
+                              <button className="link" onClick={() => setOpen(open === spell.id ? null : spell.id)}>{spell.name}</button>
+                              {details && <SpellPopup spell={spell} details={details} />}
+                            </span>
+                            {details ? (
+                              <>
+                                <span className="spell-cell" title="Casting time">{details.castingTime}{details.ritual ? ' (ritual)' : ''}</span>
+                                <span className="spell-cell" title="Range">{details.range}</span>
+                                <span className="spell-cell" title="Components">{details.components}</span>
+                                <span className="spell-cell" title="Duration">{details.duration}</span>
+                                <span className="muted spell-what" title="What it does">{firstSentence(details.description)}</span>
+                              </>
+                            ) : <span className="muted spell-what">No book details found for this spell name.</span>}
+                            {spell.notes && <span className="muted">{spell.notes}</span>}
+                          </div>
+                          {open === spell.id && <SpellDetailsView details={details} />}
+                        </>
+                      )
+                    })()}
                   </div>
                 )
               })}
