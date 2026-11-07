@@ -19,12 +19,47 @@ export interface ItemInfo {
   name: string
   category: string
   weight: number | null // pounds; null when the book gives none or "Varies"
+  mastery: string | null // weapon mastery property, for weapons
   cost: string | null
   book: string
   ruleset: string
 }
 
+// A spell from the imported data pack.
+export interface SpellInfo {
+  id: string
+  name: string
+  level: number | null
+  school: string | null
+  castingTime: string | null
+  range: string | null
+  components: { v: boolean; s: boolean; m: boolean; material: string | null } | null
+  duration: string | null
+  concentration: boolean
+  ritual: boolean
+  classLists: string[]
+  text: string
+  higherLevels: string | null
+  book: string
+  ruleset: string
+}
+
+// A feat from the imported data pack.
+export interface FeatInfo {
+  id: string
+  name: string
+  category: string
+  prerequisite: string | null
+  text: string
+  supersededBy: string | null
+  book: string
+  ruleset: string
+}
+
 export interface AppApi {
+  listFeats(): Promise<FeatInfo[]>
+  getClassData(): Promise<{ classes: unknown[]; subclasses: unknown[] }>
+  listSpells(): Promise<SpellInfo[]>
   listItems(): Promise<ItemInfo[]>
   getSaveFolder(): Promise<string>
   listCharacters(): Promise<CharacterListEntry[]>

@@ -117,7 +117,24 @@ export interface Spellcasting {
   slotsMax: number[] // index 0 = level 1 slots ... index 8 = level 9
 }
 
+// What the books say about a spell, copied onto the character when a known spell is picked.
+// Every field is optional on old files; a spell typed by hand has no details.
+export interface SpellDetails {
+  school: string
+  castingTime: string
+  range: string
+  components: string
+  duration: string
+  concentration: boolean
+  ritual: boolean
+  description: string
+  higherLevels: string | null
+  classes: string[]
+  source: string
+}
+
 export interface SpellEntry {
+  details?: SpellDetails
   id: string
   spellId: string | null // link to imported spell, later
   name: string

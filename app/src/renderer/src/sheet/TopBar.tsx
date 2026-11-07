@@ -7,12 +7,14 @@ import { longRest, shortRest, spendHitDie } from '../../../shared/rules/rest'
 import { classLabel, hitDicePools, maxHp, totalLevel } from '../../../shared/rules/summary'
 import { CLASS_NAMES } from '../../../shared/coreRules'
 import { ChoiceInput, NumberInput, TextInput, UsesTracker } from '../common/Inputs'
+import { LevelUpWizard } from '../levelup/LevelUpWizard'
 import { useSheet } from '../SheetContext'
 import { resizeImage } from './portrait'
 
 export function TopBar() {
   const { character, update, editing, rollD20, rollDice } = useSheet()
   const [amount, setAmount] = useState<number | null>(null)
+  const [levelingUp, setLevelingUp] = useState(false)
   const max = maxHp(character)
   const state = character.state
 
@@ -129,7 +131,9 @@ export function TopBar() {
             </button>
           </div>
         ))}
+        {levelingUp && <LevelUpWizard onClose={() => setLevelingUp(false)} />}
         <div className="rest-buttons">
+          <button onClick={() => setLevelingUp(true)} title="Guided level up: hit points, features, subclass, spells, feats">Level up</button>
           <button onClick={() => update(shortRest)} title="Resets features that recharge on a short rest">
             Short Rest
           </button>

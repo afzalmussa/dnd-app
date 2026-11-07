@@ -5,6 +5,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { AppApi } from '../shared/api'
 
 const api: AppApi = {
+  listFeats: () => ipcRenderer.invoke('listFeats'),
+  getClassData: () => ipcRenderer.invoke('getClassData'),
+  listSpells: () => ipcRenderer.invoke('listSpells'),
   listItems: () => ipcRenderer.invoke('listItems'),
   getSaveFolder: () => ipcRenderer.invoke('getSaveFolder'),
   listCharacters: () => ipcRenderer.invoke('listCharacters'),
