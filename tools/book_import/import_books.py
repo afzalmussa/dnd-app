@@ -13,9 +13,9 @@ from pathlib import Path
 import pymupdf
 
 import survey
-from parsers.classes import letters, parse_class
+from parsers.classes import letters, parse_class, slug
 from parsers.backgrounds import parse_backgrounds
-from parsers.gear import parse_gear
+from parsers.gear import parse_gear, parse_gear_table
 from parsers.equipment import parse_armor, parse_weapons
 from parsers.legacy import parse_legacy_feats, parse_subclasses_2014
 from parsers.origins import parse_feats, parse_species
@@ -99,7 +99,35 @@ def main():
         a, a_fixes, a_err = parse_armor(doc, ROOT / "ocr-cache", args.book, book["ruleset"], sections["equipment"]["armor"])
         tools, t_fixes = parse_gear(ROOT / "ocr-cache", args.book, book["ruleset"], "tool", *sections["equipment"]["tools"])
         gear, g_fixes = parse_gear(ROOT / "ocr-cache", args.book, book["ruleset"], "gear", *sections["equipment"]["gear"])
-        items, fixes = w + a + tools + gear, fixes + w_fixes + a_fixes + t_fixes + g_fixes
+        # The Adventuring Gear table gives each gear item's weight (and a second copy of its cost to check).
+        table_fixes = []
+        table = parse_gear_table(doc, sections["equipment"]["gear_table"], table_fixes)
+        have = {letters(g["name"]): g for g in gear}
+        orphans = table.pop("__orphans__", [])
+        for o in orphans:
+            # A table row whose name the scan lost: the only gear entry missing from the table that sorts between its neighbours.
+            lo, hi = letters(o["after"] or ""), letters(o["before"] or "ZZZZ")
+            fits = [g for k, g in have.items() if k not in {letters(t) for t in table} and lo < k < hi]
+            if len(fits) == 1:
+                table[fits[0]["name"]] = {"weight": o["weight"], "cost": o["cost"], "weightGarbled": False, "byPosition": True}
+        for tname, row in table.items():
+            g = have.get(letters(tname))
+            if g is None:
+                g = {"id": f"item.{slug(tname)}.{args.book}", "kind": "item", "name": tname, "category": "gear",
+                     "source": {"book": args.book, "ruleset": book["ruleset"], "page": sections["equipment"]["gear_table"], "ocrUsed": False,
+                                "flags": ["only in the Adventuring Gear table; no description entry was found"]},
+                     "cost": row["cost"], "weight": None, "attunement": False, "summary": "", "text": ""}
+                gear.append(g)
+                have[letters(tname)] = g
+            g["weight"] = row["weight"] if row["weight"] != "Varies" else None
+            g["weightNote"] = "Varies" if row["weight"] == "Varies" else ("blank in the table (negligible)" if row["weight"] is None and not row["weightGarbled"] else None)
+            if row.get("byPosition"):
+                g["source"]["flags"].append("the table row's name was lost in the scan; matched to this item by alphabetical position. Check the page")
+            if row["weightGarbled"]:
+                g["source"]["flags"].append("weight is garbled in the scan; check page " + str(sections["equipment"]["gear_table"]))
+            if g["cost"] and row["cost"] and g["cost"] != row["cost"]:
+                g["source"]["flags"].append(f"cost is {g['cost']} in the entry but {row['cost']} in the table; check the page")
+        items, fixes = w + a + tools + gear, fixes + w_fixes + a_fixes + t_fixes + g_fixes + table_fixes
         ip = {i["id"]: validate_item(i) for i in items}
         extras.append("".join(f"<p class='bad'>{e}</p>" for e in w_err + a_err) + item_section(items, ip))
         (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)

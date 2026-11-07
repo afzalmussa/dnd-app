@@ -254,3 +254,5 @@ input[type='checkbox'] { accent-color: var(--accent); }
 .tag-select, .choice-select { font-size: 0.85rem; max-width: 12rem; }
 .choice-input { display: inline-flex; gap: 0.25rem; align-items: center; }
 .class-row .choice-select { width: 10rem; }
+
+.inventory-totals.over span:first-child { color: #ff6b6b; font-weight: bold; }

@@ -1,7 +1,9 @@
 // Inventory tab. Always editable, because items and coins change during play.
 
 import { newId } from '../../../shared/character'
-import { attunedCount, totalWeight } from '../../../shared/rules/inventory'
+import { useEffect, useState } from 'react'
+import type { ItemInfo } from '../../../shared/api'
+import { attunedCount, capacity, isOverCapacity, totalWeight } from '../../../shared/rules/inventory'
 import type { Coins } from '../../../shared/schema/character'
 import { NumberInput, Section, TextInput } from '../common/Inputs'
 import { useSheet } from '../SheetContext'
@@ -16,6 +18,23 @@ const COINS: { key: keyof Coins; label: string }[] = [
 
 export function InventoryTab() {
   const { character, update } = useSheet()
+  const [known, setKnown] = useState<ItemInfo[]>([])
+  useEffect(() => {
+    window.api.listItems().then(setKnown).catch(() => setKnown([]))
+  }, [])
+
+  // Picking a name from the list fills in the weight from the book data (only if the weight is still 0).
+  function nameChanged(index: number, name: string) {
+    const match = known.find((item) => item.name.toLowerCase() === name.trim().toLowerCase())
+    update((c) => {
+      const row = c.inventory[index]
+      row.name = name
+      if (match) {
+        row.itemId = match.id
+        if (row.weight === 0 && match.weight !== null) row.weight = match.weight
+      }
+    })
+  }
 
   return (
     <div className="tab-body">
@@ -61,7 +80,7 @@ export function InventoryTab() {
             {character.inventory.map((item, i) => (
               <tr key={item.id}>
                 <td><input type="checkbox" checked={item.equipped} onChange={(e) => update((c) => { c.inventory[i].equipped = e.target.checked })} /></td>
-                <td><TextInput value={item.name} placeholder="Item name" onChange={(v) => update((c) => { c.inventory[i].name = v })} /></td>
+                <td><input type="text" className="text-input" list="known-items" value={item.name} placeholder="Item name" onChange={(e) => nameChanged(i, e.target.value)} /></td>
                 <td><NumberInput value={item.quantity} min={0} onChange={(v) => update((c) => { c.inventory[i].quantity = Math.max(0, v ?? 0) })} /></td>
                 <td><NumberInput value={item.weight} min={0} onChange={(v) => update((c) => { c.inventory[i].weight = Math.max(0, v ?? 0) })} /></td>
                 <td><input type="checkbox" checked={item.attuned} onChange={(e) => update((c) => { c.inventory[i].attuned = e.target.checked })} /></td>
@@ -71,8 +90,15 @@ export function InventoryTab() {
             ))}
           </tbody>
         </table>
-        <div className="inventory-totals">
-          <span>Total weight: {totalWeight(character)} lb</span>
+        <datalist id="known-items">
+          {known.map((item) => <option key={item.id} value={item.name} />)}
+        </datalist>
+        <div className={`inventory-totals ${isOverCapacity(character) ? 'over' : ''}`}>
+          <span title="Carry limit is Strength x 15 lb (2024 PHB). Drag, lift or push up to Strength x 30 lb.">
+            Carried: {totalWeight(character)} / {capacity(character).carry} lb
+            {isOverCapacity(character) ? ' (over the limit)' : ''}
+          </span>
+          <span>Drag, lift or push: {capacity(character).dragLiftPush} lb</span>
           <span>Attuned items: {attunedCount(character)}</span>
         </div>
       </Section>

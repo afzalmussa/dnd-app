@@ -13,7 +13,19 @@ export interface CharacterListEntry {
 
 export type LoadResult = { ok: true; character: CharacterFile } | { ok: false; error: string }
 
+// An item from the imported data pack (weapons, armor, tools, gear).
+export interface ItemInfo {
+  id: string
+  name: string
+  category: string
+  weight: number | null // pounds; null when the book gives none or "Varies"
+  cost: string | null
+  book: string
+  ruleset: string
+}
+
 export interface AppApi {
+  listItems(): Promise<ItemInfo[]>
   getSaveFolder(): Promise<string>
   listCharacters(): Promise<CharacterListEntry[]>
   loadCharacter(fileName: string): Promise<LoadResult>

@@ -21,7 +21,7 @@ def class_card(e, problems):
         out.append(f"<tr><th>{k}</th><td>{esc(json.dumps(e[k]))}</td></tr>")
     out.append("</table>")
     cols = e["columnNames"]
-    slots = e["progression"][0]["spellSlots"] is not None
+    slots = bool(e["progression"]) and e["progression"][0]["spellSlots"] is not None
     out.append("<table><tr><th>Lvl</th><th>Prof</th><th>Features</th>" + "".join(f"<th>{esc(c)}</th>" for c in cols)
                + ("".join(f"<th>S{i}</th>" for i in range(1, 10)) if slots else "") + "</tr>")
     for r in e["progression"]:

@@ -1,3 +1,5 @@
+import re
+
 """Structural checks on parsed classes. Anything that fails becomes a flag; nothing is corrected here."""
 
 
@@ -19,6 +21,8 @@ def validate_class(entry):
             problems.append(f"level {r['level']}: proficiency bonus {r['proficiencyBonus']}, standard progression says {expected}")
     for name in entry["columnNames"]:
         values = [r["columns"].get(name) for r in rows]
+        # Dice columns (Bardic Die, Sneak Attack) compare by die size: "d8" < "d10".
+        values = [int(re.search(r"d(\d+)", v).group(1)) if isinstance(v, str) else v for v in values]
         if any(v is None for v in values):
             missing = [r["level"] for r in rows if r["columns"].get(name) is None]
             problems.append(f"column '{name}' is empty at levels {missing}")
@@ -27,7 +31,7 @@ def validate_class(entry):
             if drops:
                 problems.append(f"column '{name}' goes down at levels {drops}")
     if rows[0]["spellSlots"] is not None:
-        for slot in range(9):
+        for slot in range(len(rows[0]["spellSlots"])):
             col = [r["spellSlots"][slot] or 0 for r in rows]
             drops = [rows[i]["level"] for i in range(1, 20) if col[i] < col[i - 1]]
             if drops:

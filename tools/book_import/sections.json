@@ -26,7 +26,8 @@
       "gear": [
         221,
         228
-      ]
+      ],
+      "gear_table": 222
     },
     "spells": {
       "first": 236,
@@ -46,10 +47,55 @@
         "last": 57,
         "table": 51
       },
+      "bard": {
+        "first": 58,
+        "last": 67,
+        "table": 59
+      },
       "cleric": {
         "first": 68,
         "last": 77,
         "table": 69
+      },
+      "druid": {
+        "first": 78,
+        "last": 89,
+        "table": 79
+      },
+      "fighter": {
+        "first": 90,
+        "last": 99,
+        "table": 91
+      },
+      "monk": {
+        "first": 100,
+        "last": 107,
+        "table": 101
+      },
+      "paladin": {
+        "first": 108,
+        "last": 117,
+        "table": 109
+      },
+      "ranger": {
+        "first": 118,
+        "last": 127,
+        "table": 119
+      },
+      "rogue": {
+        "first": 128,
+        "last": 137,
+        "table": 129
+      },
+      "sorcerer": {
+        "first": 138,
+        "last": 151,
+        "table": 139
+      },
+      "warlock": {
+        "first": 152,
+        "last": 163,
+        "table": 153
       },
       "wizard": {
         "first": 164,

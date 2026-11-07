@@ -13,6 +13,7 @@ import {
   saveCharacter,
   writeCharacterFile
 } from './characterFiles'
+import { listItems } from './dataPack'
 import { getSaveFolder } from './settings'
 
 function createWindow(): BrowserWindow {
@@ -62,6 +63,7 @@ function createWindow(): BrowserWindow {
 }
 
 function registerHandlers(): void {
+  ipcMain.handle('listItems', () => listItems())
   ipcMain.handle('getSaveFolder', () => getSaveFolder())
   ipcMain.handle('listCharacters', () => listCharacters())
   ipcMain.handle('loadCharacter', (_event, fileName: string) => loadCharacter(fileName))

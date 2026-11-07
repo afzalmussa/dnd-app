@@ -6,6 +6,8 @@ only inside the table's number cells and every repair is logged.
 import re
 
 # Characters OCR often confuses with digits. Only applied to cells that must be numbers.
+LEVEL_RE = re.compile(r"^[Ll1I]evel$")
+DICE_CELL = re.compile(r"^([lI1]?)d([0-9lIO]{1,3})$", re.IGNORECASE)  # "d8", "ld6", "1d6" (Bardic Die, Sneak Attack)
 DIGIT_LOOKALIKES = {"l": "1", "I": "1", "|": "1", "O": "0", "o": "0", "S": "5", "s": "5"}
 
 
@@ -21,6 +23,21 @@ def fix_number(token, page, log):
     if fixed != body:
         log.append({"page": page, "rule": "table-digit", "before": token, "after": sign + fixed})
     return sign + fixed
+
+
+def dice_cell(token, page, log):
+    """'ld6' -> '1d6', 'D8' -> 'd8'. Returns None unless the die is a real one."""
+    m = DICE_CELL.match(token)
+    if not m:
+        return None
+    die = "".join(DIGIT_LOOKALIKES.get(c, c) for c in m.group(2))
+    if die not in ("4", "6", "8", "10", "12", "20"):
+        return None
+    count = "1" if m.group(1) else ""
+    out = f"{count}d{die}"
+    if out != token:
+        log.append({"page": page, "rule": "table-dice", "before": token, "after": out})
+    return out
 
 
 def _center_x(w):
@@ -60,9 +77,9 @@ def parse_features_table(words, page_no):
 
     # Header: the top-most "Level" word. Its position, "Bonus" and "Class" tell us where
     # the level, proficiency and feature columns sit (they differ from class to class).
-    level_words = [w for w in words if w[4] == "Level" and w[0] < 120]
-    bonus_words = [w for w in words if w[4] == "Bonus"]
-    class_words = [w for w in words if w[4] == "Class"]
+    level_words = [w for w in words if LEVEL_RE.match(w[4]) and w[0] < 120]
+    bonus_words = [w for w in words if w[4].lower() == "bonus"]
+    class_words = [w for w in words if w[4].lower() == "class"]
     if not (level_words and bonus_words and class_words):
         flags.append("table: could not find the Level, Bonus and Class headings")
         return result
@@ -81,6 +98,9 @@ def parse_features_table(words, page_no):
             if n and not n.startswith(("+", "-")) and int(n) <= 20:
                 labels.append({"y": _center_y(w), "level": int(n)})
     labels.sort(key=lambda t: t["y"])
+    end20 = next((i for i, t in enumerate(labels) if t["level"] == 20), None)
+    if end20 is not None:
+        labels = labels[:end20 + 1]  # numbers further down the page are prose, not table rows
 
     # Proficiency bonus: "+N" tokens under the Bonus heading.
     prof_tokens = []
@@ -116,9 +136,16 @@ def parse_features_table(words, page_no):
     for w in words:
         if in_table(w) and w[0] >= feat_x0 + 30:
             n = fix_number(w[4], page_no, log)
+            if n is None:
+                n = dice_cell(w[4], page_no, log)
             if n is not None:
                 numeric.append({"y": _center_y(w), "x": _center_x(w), "x0": w[0], "value": n})
-    feature_right = min((t["x0"] for t in numeric), default=10_000) - 4
+    # A first row group that is not part of the 20 data rows is the heading row of digits (1 2 3 ...).
+    all_rows = _group_rows(numeric)
+    header_rows = all_rows[:-20] if len(all_rows) > 20 else []
+    data_rows = all_rows[-20:] if len(all_rows) > 20 else all_rows
+    data_tokens = [t for row in data_rows for t in row]
+    feature_right = min((t["x0"] for t in data_tokens), default=10_000) - 4
 
     # Feature names: words between the Class heading and the first number column.
     feature_words = {t["level"]: [] for t in labels}
@@ -128,19 +155,21 @@ def parse_features_table(words, page_no):
             feature_words[nearest["level"]].append((round(_center_y(w) / 4), w[0], w[4]))
 
     # Column positions and names from the number cells and the header words above them.
-    col_x = _cluster([t["x"] for t in numeric])
+    col_x = _cluster([t["x"] for t in data_tokens])
     header_words = [w for w in words if header_top <= _center_y(w) <= header_bottom + 1 and _center_x(w) > feature_right]
     names = []
     for cx in col_x:
         near = sorted((w for w in header_words if abs(_center_x(w) - cx) <= 14), key=lambda w: (_center_y(w), w[0]))
         digit = next((fix_number(w[4], page_no, []) for w in near if fix_number(w[4], page_no, [])), None)
+        from_row = next((t["value"] for row in header_rows for t in row if abs(t["x"] - cx) <= 8 and str(t["value"]).isdigit()), None)
+        digit = from_row or digit
         names.append(digit if digit else " ".join(w[4] for w in near))
     if any(not n for n in names):
         flags.append("table: a number column has no readable heading")
     result["columns"] = [{"name": n or f"column@{round(cx)}", "x": round(cx)} for n, cx in zip(names, col_x)]
 
     # Pair number rows with levels by order (their y positions are offset from the level labels).
-    number_rows = _group_rows(numeric)
+    number_rows = data_rows
     cells_by_level = {t["level"]: {} for t in labels}
     if len(number_rows) == 20:
         for lab, row in zip(labels, number_rows):
@@ -148,7 +177,7 @@ def parse_features_table(words, page_no):
                 col = min(range(len(col_x)), key=lambda i: abs(col_x[i] - t["x"]))
                 if result["columns"][col]["name"] in cells_by_level[lab["level"]]:
                     flags.append(f"table: two numbers in one cell at level {lab['level']}")
-                cells_by_level[lab["level"]][result["columns"][col]["name"]] = int(t["value"])
+                cells_by_level[lab["level"]][result["columns"][col]["name"]] = t["value"] if "d" in str(t["value"]) else int(t["value"])
     else:
         flags.append(f"table: found {len(number_rows)} number rows, expected 20; numbers left empty")
 

@@ -94,3 +94,75 @@ def parse_gear(cache_dir, book, ruleset, kind, first, last):
                 flags.append("long text; may include a table or run-on lines. Check the page")
         items.append(item)
     return items, fixes
+
+
+# ---- the Adventuring Gear table: Item / Weight / Cost, in two columns on the page -----------
+
+WEIGHT = r"(?:Varies|\d+(?:/\d+)?½?\s*(?:lb\.?|16\.)|½\s*lb\.?)"
+COST = r"(?:Varies|[0-9SOlI,]+\s?(?:CP|SP|EP|GP|PP))"
+TABLE_LINE = re.compile(rf"^(?P<name>.+?)(?:\s+(?P<weight>{WEIGHT}))?\s+(?P<cost>{COST})$")
+
+
+def weight_pounds(text):
+    """'1/2 lb.' -> 0.5, '216.' -> 2, '58½ lb.' -> 58.5, 'Varies' -> None."""
+    if not text or text.lower() == "varies":
+        return None
+    t = text.replace(" ", "").replace("lb.", "").replace("lb", "")
+    t = re.sub(r"16\.$", "", t) if not re.fullmatch(r"\d+/\d+|\d+", t) else t
+    half = t.endswith("½")
+    t = t.replace("½", "")
+    if "/" in t:
+        a, b = t.split("/")
+        return int(a) / int(b)
+    return (int(t) if t else 0) + (0.5 if half else 0)
+
+
+def parse_gear_table(doc, page_no, fixes):
+    """Returns {name: {'weight': 'x lb.' or None, 'cost': 'n GP'}} read from the two-column table."""
+    page = doc[page_no - 1]
+    words = page.get_text("words")
+    mid = page.rect.width / 2
+    out, ordered, orphans = {}, [], []
+    for in_half in (lambda w: w[0] < mid - 4, lambda w: w[0] >= mid - 4):
+        lines = []
+        for w in sorted((w for w in words if in_half(w)), key=lambda w: ((w[1] + w[3]) / 2, w[0])):
+            y = (w[1] + w[3]) / 2
+            if lines and abs(lines[-1][0] - y) <= 4:
+                lines[-1][1].append(w)
+            else:
+                lines.append([y, [w]])
+        for _, ws in lines:
+            text = " ".join(w[4] for w in sorted(ws, key=lambda w: w[0]))
+            text = re.sub(r"\b[lI]\b(?=\s*(?:lb|GP|SP|CP))", "1", text)
+            m = TABLE_LINE.match(text)
+            if not m or m.group("name") in ("Item", "Weight Cost"):
+                continue
+            cost = fix_cost(m.group("cost"), page_no, fixes)
+            wt = m.group("weight")
+            lb = None
+            if wt and wt.lower() != "varies":
+                pounds = weight_pounds(wt)
+                lb = f"{pounds:g} lb."
+                if lb != wt:
+                    fixes.append({"page": page_no, "rule": "table-weight", "before": wt, "after": lb})
+            elif wt:
+                lb = "Varies"
+            name = m.group("name").strip()
+            garbled = re.match(r"^(.+?)\s+\S*\d\S*\s*lb\.$", name)  # "Tent 2Cl lb.": a weight the scan could not read
+            if garbled:
+                name, lb = garbled.group(1), None
+            inside = re.match(r"^(.+?)\s+(\d+(?:/\d+)? lb\.)(?:\s*\(.*\))?$", name)  # "Waterskin 5 lb. (full)"
+            if inside:
+                name, lb = inside.group(1), inside.group(2)
+            if re.match(r"^\d+ lb\.$", name):
+                # The item name was lost on this line (the first row). Resolved later by alphabetical position.
+                orphans.append({"weight": name, "cost": cost, "index": len(ordered)})
+                ordered.append(None)
+                continue
+            ordered.append(name)
+            out[name] = {"weight": lb, "cost": cost, "weightGarbled": bool(garbled)}
+    for o in orphans:
+        o["before"] = next((n for n in ordered[o["index"] + 1:] if n), None)
+        o["after"] = next((n for n in reversed(ordered[:o["index"]]) if n), None)
+    out["__orphans__"] = orphans
+    return out
