@@ -1,0 +1,21 @@
+# Windows build: a zip and a portable exe that need no installer.
+# The data pack (data-pack/, made by the book import) is copied in as a resource so players get the
+# rules data without Python, Tesseract or the PDFs. The PDFs, OCR cache and reports are never included.
+appId: com.afzalmussa.dndcharactermanager
+productName: DnD Character Manager
+directories:
+  output: release
+files:
+  - out/**
+  - package.json
+extraResources:
+  - from: ../data-pack
+    to: data-pack
+    filter:
+      - "**/*.json"
+win:
+  target:
+    - zip
+    - portable
+  signAndEditExecutable: false
+artifactName: ${productName}-${version}-win.${ext}

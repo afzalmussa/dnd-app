@@ -59,7 +59,27 @@ export interface FeatInfo {
 export type ContentKind = 'spell' | 'feat' | 'item' | 'class' | 'subclass' | 'species' | 'background'
 export type ContentOrigin = 'book' | 'edited' | 'user'
 
+export interface AppSettings {
+  saveFolder: string
+  contentFolder: string
+  role: 'player' | 'dm'
+  dmFolder: string
+}
+
+// The DM's in-game clock, shared through campaign.json in the save folder.
+export interface Campaign {
+  gameMinutes: number
+}
+
 export interface AppApi {
+  getSettings(): Promise<AppSettings>
+  // Opens a folder picker. Returns the new settings, or null if cancelled.
+  chooseFolder(which: 'saveFolder' | 'contentFolder' | 'dmFolder'): Promise<AppSettings | null>
+  setRole(role: 'player' | 'dm'): Promise<AppSettings>
+  getCampaign(): Promise<Campaign | null>
+  setCampaign(campaign: Campaign): Promise<void>
+  // Reads every character file in the DM folder. Never writes to it.
+  listParty(): Promise<import('./rules/party').PartyMember[]>
   // Book entries merged with your corrections and homebrew (each has `_origin`).
   listContent(kind: ContentKind): Promise<Record<string, any>[]>
   saveContent(kind: ContentKind, entry: Record<string, any>): Promise<void>

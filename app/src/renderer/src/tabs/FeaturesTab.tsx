@@ -2,7 +2,7 @@
 // feature given a number of uses also shows as a resource in the right column.
 // The full custom feature editor (modifiers, timed effects, triggers) is Milestone 4.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { newId } from '../../../shared/character'
 import type { CustomEffect } from '../../../shared/schema/character'
 import type { Activation } from '../../../shared/schema/effects'
@@ -236,6 +236,10 @@ function PlayControls() {
   const toggles = toggleNames(character)
   const [minutes, setMinutes] = useState<number | null>(60)
   const [ended, setEnded] = useState<string[]>([])
+  const [dmClock, setDmClock] = useState(false) // a campaign clock exists, so the DM view sets the time
+  useEffect(() => {
+    void window.api.getCampaign().then((c) => setDmClock(!!c))
+  }, [])
   return (
     <Section title="In play">
       <div className="play-controls">
@@ -249,7 +253,9 @@ function PlayControls() {
         <strong>{formatGameTime(gameMinutes(character))}</strong>
         <NumberInput value={minutes} min={0} onChange={setMinutes} />
         <span className="muted small">min</span>
-        <button className="small" onClick={() => update((c) => { setEnded(advanceTime(c, minutes ?? 0)) })}>Advance</button>
+        {dmClock ? <span className="muted small">set in the DM view (campaign clock)</span> : (
+          <button className="small" onClick={() => update((c) => { setEnded(advanceTime(c, minutes ?? 0)) })}>Advance</button>
+        )}
         <button className="small" onClick={() => update((c) => { setEnded(nextRound(c)) })}>Next round</button>
       </div>
       {ended.length > 0 && <p className="warning small">Ended: {ended.join(', ')}</p>}

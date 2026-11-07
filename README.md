@@ -53,3 +53,18 @@ Needs Tesseract at `C:\Program Files\Tesseract-OCR`. Output: `data-pack/phb24/cl
 - All of it reads `data-pack/` (made by the book import). Without it, the lists are empty and you can still type everything by hand.
 
 Re-run the full import: `python tools\book_import\import_books.py --book phb24` (and `xge`, `tce`, `bgg`), then `python tools\book_import\multiclass.py`.
+
+## Windows build (Milestone 5)
+
+```
+cd app
+npm run dist
+```
+
+Makes `app\release\DnD Character Manager-<version>-win.zip` and a portable `.exe` that run without installing anything. The data pack (`data-pack\`) is copied in as a resource; the PDFs, OCR cache and reports are not. Run the book import first so the data pack exists.
+
+## Sharing with the party
+
+- **Settings** (toolbar): choose the folder characters are saved in (a shared Google Drive folder works), the folder your corrections and homebrew are saved in, and whether this PC is the DM's.
+- **DM view** (toolbar): all party sheets at a glance (HP, AC, passive Perception, spell slots, resources, conditions). It only reads the folder and never changes a sheet.
+- **Campaign clock:** on the DM's PC (Settings, DM) the DM view can advance the in-game time. It is saved as `campaign.json` in the save folder. Players' apps read it every few seconds and end effects and temporary HP whose time has run out.

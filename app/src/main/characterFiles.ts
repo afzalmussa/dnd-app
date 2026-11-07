@@ -30,7 +30,7 @@ export function readCharacterFile(path: string): LoadResult {
 export function listCharacters(): CharacterListEntry[] {
   const folder = getSaveFolder()
   return readdirSync(folder)
-    .filter((name) => name.endsWith('.json'))
+    .filter((name) => name.endsWith('.json') && name !== 'campaign.json')
     .sort()
     .map((fileName) => {
       const result = readCharacterFile(join(folder, fileName))

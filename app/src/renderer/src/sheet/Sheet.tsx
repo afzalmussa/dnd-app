@@ -6,6 +6,7 @@ import { FeaturesTab } from '../tabs/FeaturesTab'
 import { InventoryTab } from '../tabs/InventoryTab'
 import { NotesTab } from '../tabs/NotesTab'
 import { SpellsTab } from '../tabs/SpellsTab'
+import { CampaignSync } from './CampaignSync'
 import { LeftColumn } from './LeftColumn'
 import { RightColumn } from './RightColumn'
 import { TopBar } from './TopBar'
@@ -24,6 +25,7 @@ export function Sheet() {
 
   return (
     <div className="sheet">
+      <CampaignSync />
       <TopBar />
       <div className="columns">
         <LeftColumn />

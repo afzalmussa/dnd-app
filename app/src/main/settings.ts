@@ -3,12 +3,14 @@
 // save folder from the app; for now the default is used unless the file says otherwise.
 
 import { app } from 'electron'
-import { existsSync, mkdirSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-interface Settings {
-  saveFolder: string
+export interface Settings {
+  saveFolder: string // where this PC's characters are saved; can be a shared Drive folder
   contentFolder: string // corrections and homebrew; can be a shared folder
+  role: 'player' | 'dm'
+  dmFolder: string // the folder of party sheets the DM view reads (read-only)
 }
 
 function settingsPath(): string {
@@ -16,7 +18,8 @@ function settingsPath(): string {
 }
 
 function defaults(): Settings {
-  return { saveFolder: join(app.getPath('userData'), 'characters'), contentFolder: join(app.getPath('userData'), 'user-content') }
+  const saveFolder = join(app.getPath('userData'), 'characters')
+  return { saveFolder, contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', dmFolder: saveFolder }
 }
 
 export function loadSettings(): Settings {
@@ -34,4 +37,11 @@ export function getSaveFolder(): string {
   const folder = loadSettings().saveFolder
   mkdirSync(folder, { recursive: true })
   return folder
+}
+
+export function saveSettings(change: Partial<Settings>): Settings {
+  const next = { ...loadSettings(), ...change }
+  mkdirSync(app.getPath('userData'), { recursive: true })
+  writeFileSync(settingsPath(), JSON.stringify(next, null, 2), 'utf8')
+  return next
 }

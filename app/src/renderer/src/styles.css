@@ -305,3 +305,8 @@ button.link { background: none; border: none; color: inherit; text-decoration: u
 .spell-name-wrap:hover .spell-popup { display: block; }
 .spell-popup p { margin: 0.4rem 0; }
 .spell-details { margin-left: 2.1rem; }
+
+.party-table { width: 100%; border-collapse: collapse; }
+.party-table th, .party-table td { border-bottom: 1px solid #3a2a2a; padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
+.party-table td.low { color: #ff6b6b; font-weight: bold; }
+.modal.party-view { width: min(1300px, 97vw); }

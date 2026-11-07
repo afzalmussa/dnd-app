@@ -5,6 +5,12 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { AppApi } from '../shared/api'
 
 const api: AppApi = {
+  getSettings: () => ipcRenderer.invoke('getSettings'),
+  chooseFolder: (which) => ipcRenderer.invoke('chooseFolder', which),
+  setRole: (role) => ipcRenderer.invoke('setRole', role),
+  getCampaign: () => ipcRenderer.invoke('getCampaign'),
+  setCampaign: (campaign) => ipcRenderer.invoke('setCampaign', campaign),
+  listParty: () => ipcRenderer.invoke('listParty'),
   listContent: (kind) => ipcRenderer.invoke('listContent', kind),
   saveContent: (kind, entry) => ipcRenderer.invoke('saveContent', kind, entry),
   deleteContent: (kind, id) => ipcRenderer.invoke('deleteContent', kind, id),

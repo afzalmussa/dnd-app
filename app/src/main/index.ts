@@ -15,7 +15,8 @@ import {
 } from './characterFiles'
 import { getClassData, listFeats, listItems, listSpells, mergedContent } from './dataPack'
 import { deleteUserEntry, saveUserEntry, type ContentKind } from './userContent'
-import { getSaveFolder } from './settings'
+import { getCampaign, listParty, setCampaign } from './party'
+import { getSaveFolder, loadSettings, saveSettings } from './settings'
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -64,6 +65,21 @@ function createWindow(): BrowserWindow {
 }
 
 function registerHandlers(): void {
+  ipcMain.handle('getSettings', () => loadSettings())
+  ipcMain.handle('chooseFolder', async (event, which: 'saveFolder' | 'contentFolder' | 'dmFolder') => {
+    const parent = BrowserWindow.fromWebContents(event.sender)
+    const options = { properties: ['openDirectory' as const, 'createDirectory' as const], title: 'Choose a folder' }
+    const result = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options)
+    if (result.canceled || result.filePaths.length === 0) return null
+    const change: Record<string, string> = { [which]: result.filePaths[0] }
+    // The DM view follows the save folder until the DM picks a different one.
+    if (which === 'saveFolder' && loadSettings().dmFolder === loadSettings().saveFolder) change.dmFolder = result.filePaths[0]
+    return saveSettings(change)
+  })
+  ipcMain.handle('setRole', (_e, role: 'player' | 'dm') => saveSettings({ role }))
+  ipcMain.handle('getCampaign', () => getCampaign())
+  ipcMain.handle('setCampaign', (_e, campaign: { gameMinutes: number }) => setCampaign(campaign))
+  ipcMain.handle('listParty', () => listParty())
   ipcMain.handle('listItems', () => listItems())
   ipcMain.handle('listContent', (_e, kind: ContentKind) => mergedContent(kind))
   ipcMain.handle('saveContent', (_e, kind: ContentKind, entry: { id: string }) => saveUserEntry(kind, entry))
