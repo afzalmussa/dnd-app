@@ -118,7 +118,7 @@ def parse_spells(doc, cache_dir, book, ruleset, first_page, last_page):
                 break
         text = tidy(body)
         ct = fields.get("Casting Time", "")
-        dur = fields.get("Duration", "")
+        dur = re.sub(r"\s+,", ",", fields.get("Duration", ""))
         page = pages[name_i] if name_i >= 0 else None
         spells.append({
             "id": f"spell.{slug(name)}.{book}", "kind": "spell", "name": name,
@@ -128,7 +128,7 @@ def parse_spells(doc, cache_dir, book, ruleset, first_page, last_page):
             "range": fields.get("Range") or None,
             "components": parse_components(fields["Components"]) if fields.get("Components") else None,
             "duration": dur or None, "concentration": dur.startswith("Concentration"),
-            "classLists": [x.strip() for x in classes.split(",")] if classes else [],
+            "classLists": [x.strip() for x in re.split(r"[,~]", classes) if x.strip()] if classes else [],
             "summary": (re.match(r"(.+?[.!?])(\s|$)", text) or [None, text[:200]])[1][:240],
             "text": text, "higherLevels": higher,
         })
