@@ -57,3 +57,14 @@ def compare_caster_slots(entries):
                 problems.setdefault(other["id"], []).append(
                     f"{ctype} caster slots differ from {first['name']} at levels {diffs}")
     return problems
+
+
+def validate_spell(s):
+    """The seven fields every spell must have (level, school, casting time, range, components, duration)."""
+    problems = []
+    for key in ("level", "school", "castingTime", "range", "components", "duration"):
+        if s[key] is None:
+            problems.append(f"{key} is empty")
+    if not s["text"]:
+        problems.append("no description text")
+    return problems

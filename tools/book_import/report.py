@@ -37,7 +37,7 @@ def class_card(e, problems):
     return "\n".join(out)
 
 
-def write_report(path, book, classes, problems_by_id, fixes):
+def write_report(path, book, classes, problems_by_id, fixes, spells=(), spell_problems=None):
     flagged = [c for c in classes if c["source"]["flags"] or problems_by_id.get(c["id"])]
     clean = [c for c in classes if c not in flagged]
     by_rule = {}
@@ -49,11 +49,35 @@ def write_report(path, book, classes, problems_by_id, fixes):
             + ". Every fix is listed in <code>fixes-" + esc(book) + ".json</code>.</p>"]
     for c in flagged + clean:
         body.append(class_card(c, problems_by_id.get(c["id"], [])))
+    if spells:
+        body.append(spell_section(spells, spell_problems or {}))
     css = ("body{font:14px system-ui;max-width:1100px;margin:1em auto;padding:0 1em}"
            "section{border:1px solid #ccc;border-radius:6px;padding:0 1em 1em;margin:1em 0}"
            ".flagged{border-color:#c33;background:#fff6f6}small{color:#666;font-weight:normal}"
            "table{border-collapse:collapse;margin:.5em 0}td,th{border:1px solid #ddd;padding:2px 6px;text-align:left}"
-           ".flags{color:#b00}.bad{color:#b00;font-weight:normal}.kv th{width:12em}")
+           "tr.flagged{background:#fff6f6}.flags{color:#b00}.bad{color:#b00;font-weight:normal}.kv th{width:12em}")
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_text(f"<!doctype html><meta charset='utf-8'><title>Import report {esc(book)}</title><style>{css}</style>"
                           + "\n".join(body), encoding="utf-8")
+
+
+def spell_section(spells, problems_by_id):
+    """One row per spell, flagged spells first."""
+    def flags(s):
+        return s["source"]["flags"] + problems_by_id.get(s["id"], [])
+    ordered = sorted(spells, key=lambda s: (not flags(s), s["source"]["page"] or 0))
+    out = [f"<h1>Spells ({len(spells)})</h1>",
+           f"<p>{sum(1 for s in spells if flags(s))} flagged. Flagged first, then by page.</p>",
+           "<table><tr><th>Name</th><th>Page</th><th>OCR</th><th>Lvl</th><th>School</th><th>Cast</th><th>Range</th>"
+           "<th>Components</th><th>Duration</th><th>Classes</th><th>Flags</th></tr>"]
+    for s in ordered:
+        c = s["components"]
+        comp = "" if not c else ", ".join(k.upper() for k in "vsm" if c[k]) + (f" ({c['material']})" if c["material"] else "")
+        f = flags(s)
+        out.append(f"<tr class='{'flagged' if f else ''}'><td>{esc(s['name'])}</td><td>{esc(s['source']['page'])}</td>"
+                   f"<td>{'yes' if s['source']['ocrUsed'] else ''}</td><td>{esc(s['level'])}</td><td>{esc(s['school'])}</td>"
+                   f"<td>{esc(s['castingTime'])}{' (ritual)' if s['ritual'] else ''}</td><td>{esc(s['range'])}</td>"
+                   f"<td>{esc(comp)}</td><td>{esc(s['duration'])}</td><td>{esc(', '.join(s['classLists']))}</td>"
+                   f"<td class='bad'>{esc('; '.join(f))}</td></tr>")
+    out.append("</table>")
+    return "\n".join(out)
