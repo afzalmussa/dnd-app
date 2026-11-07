@@ -68,3 +68,9 @@ Makes `app\release\DnD Character Manager-<version>-win.zip` and a portable `.exe
 - **Settings** (toolbar): choose the folder characters are saved in (a shared Google Drive folder works), the folder your corrections and homebrew are saved in, and whether this PC is the DM's.
 - **DM view** (toolbar): all party sheets at a glance (HP, AC, passive Perception, spell slots, resources, conditions). It only reads the folder and never changes a sheet.
 - **Campaign clock:** on the DM's PC (Settings, DM) the DM view can advance the in-game time. It is saved as `campaign.json` in the save folder. Players' apps read it every few seconds and end effects and temporary HP whose time has run out.
+
+## Story wiki
+
+The **Wiki** button switches to your story notes: **My Notes** (private, a folder on your PC) and the **Party Wiki** (a shared folder, normally the Google Drive player wiki). Pages are plain Markdown, so Obsidian can open the same folders. Choose both folders in **Settings**.
+
+Supported: `[[links]]` (with labels, headings and `Folder/Page` paths), `![[image.png]]`, `#tags`, callouts (`> [!note] Title`), front matter (shown as properties and saved back unchanged), folder notes, "Linked from", search, rename (updates links), delete (Recycle Bin). If a page was changed elsewhere while you had it open, you choose: load theirs, keep yours, or save yours as a copy. Not supported: Obsidian plugins and embedding one note inside another.

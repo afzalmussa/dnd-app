@@ -1,7 +1,9 @@
 // Electron main process: opens the window and answers the UI's requests
 // for file access (see src/shared/api.ts for the list).
 
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, net, protocol } from 'electron'
+import { pathToFileURL } from 'node:url'
+import { extname } from 'node:path'
 import { join } from 'node:path'
 import { fileNameFor } from '../shared/character'
 import type { CharacterFile } from '../shared/schema/character'
@@ -17,6 +19,7 @@ import { getClassData, listFeats, listItems, listSpells, mergedContent } from '.
 import { deleteUserEntry, saveUserEntry, type ContentKind } from './userContent'
 import { getCampaign, listParty, setCampaign } from './party'
 import { getSaveFolder, loadSettings, saveSettings } from './settings'
+import * as wiki from './wikiFiles'
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -66,7 +69,7 @@ function createWindow(): BrowserWindow {
 
 function registerHandlers(): void {
   ipcMain.handle('getSettings', () => loadSettings())
-  ipcMain.handle('chooseFolder', async (event, which: 'saveFolder' | 'contentFolder' | 'dmFolder') => {
+  ipcMain.handle('chooseFolder', async (event, which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder') => {
     const parent = BrowserWindow.fromWebContents(event.sender)
     const options = { properties: ['openDirectory' as const, 'createDirectory' as const], title: 'Choose a folder' }
     const result = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options)
@@ -74,12 +77,26 @@ function registerHandlers(): void {
     const change: Record<string, string> = { [which]: result.filePaths[0] }
     // The DM view follows the save folder until the DM picks a different one.
     if (which === 'saveFolder' && loadSettings().dmFolder === loadSettings().saveFolder) change.dmFolder = result.filePaths[0]
-    return saveSettings(change)
+    const saved = saveSettings(change)
+    if (which === 'notesFolder' || which === 'partyWikiFolder') {
+      const win = BrowserWindow.getAllWindows()[0]
+      if (win) wiki.startWatching(win)
+    }
+    return saved
   })
   ipcMain.handle('setRole', (_e, role: 'player' | 'dm') => saveSettings({ role }))
   ipcMain.handle('getCampaign', () => getCampaign())
   ipcMain.handle('setCampaign', (_e, campaign: { gameMinutes: number }) => setCampaign(campaign))
   ipcMain.handle('listParty', () => listParty())
+  ipcMain.handle('wikiTree', (_e, area) => wiki.listTree(area))
+  ipcMain.handle('wikiRead', (_e, area, path) => wiki.readPage(area, path))
+  ipcMain.handle('wikiWrite', (_e, area, path, content, expected, overwrite) => wiki.writePage(area, path, content, expected, overwrite))
+  ipcMain.handle('wikiSaveCopy', (_e, area, path, content) => wiki.saveCopy(area, path, content))
+  ipcMain.handle('wikiCreatePage', (_e, area, path, content) => wiki.createPage(area, path, content))
+  ipcMain.handle('wikiCreateFolder', (_e, area, path) => wiki.createFolder(area, path))
+  ipcMain.handle('wikiRename', (_e, area, path, newPath) => wiki.renamePage(area, path, newPath))
+  ipcMain.handle('wikiTrash', (_e, area, path) => wiki.trashPage(area, path))
+  ipcMain.handle('wikiPages', (_e, area) => wiki.allPagesWithText(area))
   ipcMain.handle('listItems', () => listItems())
   ipcMain.handle('listContent', (_e, kind: ContentKind) => mergedContent(kind))
   ipcMain.handle('saveContent', (_e, kind: ContentKind, entry: { id: string }) => saveUserEntry(kind, entry))
@@ -119,9 +136,26 @@ function registerHandlers(): void {
   })
 }
 
+// Images in wiki pages load through wiki-file://<area>/<path>. Only image files inside the two wiki
+// folders are served; the screen's Content Security Policy allows this scheme for images only.
+protocol.registerSchemesAsPrivileged([{ scheme: 'wiki-file', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
+const IMAGE_TYPES = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp'])
+
 app.whenReady().then(() => {
+  protocol.handle('wiki-file', (request) => {
+    try {
+      const url = new URL(request.url)
+      const area = url.hostname === 'party' ? 'party' : url.hostname === 'notes' ? 'notes' : null
+      const relative = decodeURIComponent(url.pathname.slice(1))
+      if (!area || !IMAGE_TYPES.has(extname(relative).toLowerCase())) return new Response('Not allowed', { status: 403 })
+      return net.fetch(pathToFileURL(wiki.safePath(area, relative)).toString())
+    } catch {
+      return new Response('Not found', { status: 404 })
+    }
+  })
   registerHandlers()
-  createWindow()
+  const window = createWindow()
+  wiki.startWatching(window)
 })
 
 app.on('window-all-closed', () => app.quit())

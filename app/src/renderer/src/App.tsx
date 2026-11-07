@@ -4,6 +4,7 @@ import { exhaustionRollPenalty } from '../../shared/rules/exhaustion'
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createBlankCharacter } from '../../shared/character'
 import { PartyView } from './dm/PartyView'
+import { WikiView } from './wiki/WikiView'
 import { ContentEditor } from './editor/ContentEditor'
 import { SettingsDialog } from './settings/SettingsDialog'
 import type { RollMode } from '../../shared/rules/dice'
@@ -29,6 +30,7 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [showEditor, setShowEditor] = useState(false)
   const [showParty, setShowParty] = useState(false)
+  const [showWiki, setShowWiki] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [rolls, setRolls] = useState<RollEntry[]>([])
@@ -193,6 +195,7 @@ export default function App() {
         <button onClick={() => setShowPicker(true)}>Characters</button>
         <button onClick={exportFile} disabled={!character}>Export</button>
         <button onClick={importFile}>Import</button>
+        <button className={showWiki ? 'active' : ''} onClick={() => setShowWiki(!showWiki)} title="Your story notes and the party wiki">Wiki</button>
         <button onClick={() => setShowParty(true)} title="All party sheets at a glance (read-only)">DM view</button>
         <button onClick={() => setShowSettings(true)}>Settings</button>
         <button onClick={() => setShowEditor(true)} title="Correct imported entries or add your own spells, feats, items and more">Content editor</button>
@@ -224,6 +227,7 @@ export default function App() {
         </div>
       )}
 
+      {showWiki ? <WikiView onClose={() => setShowWiki(false)} /> : (
       <div ref={workspace} className={`workspace dock-${dock}`}>
         <main className="main">
           {context ? (
@@ -251,6 +255,7 @@ export default function App() {
           </>
         )}
       </div>
+      )}
 
       {showPicker && (
         <CharacterPicker

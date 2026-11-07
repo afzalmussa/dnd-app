@@ -329,3 +329,27 @@ button.link { background: none; border: none; color: inherit; text-decoration: u
 .roll-total.max, .roll-entries li.max .roll-total, .roll-toast-total.max { color: #3fb950; }
 .roll-total.min, .roll-total.nat1, .roll-entries li.min .roll-total, .roll-entries li.nat1 .roll-total, .roll-toast-total.min, .roll-toast-total.nat1 { color: #ff4d4d; }
 .roll-total.nat20, .roll-entries li.nat20 .roll-total, .roll-toast-total.nat20 { color: #ffd43b; }
+
+.wiki { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.wiki-bar { display: flex; gap: 0.5rem; align-items: center; padding: 0.4rem 1rem; border-bottom: 1px solid var(--line); }
+.wiki-status { flex: 1; }
+.wiki-body { display: grid; grid-template-columns: 260px 1fr 240px; flex: 1; min-height: 0; }
+.wiki-tree, .wiki-side { overflow-y: auto; padding: 0.6rem; border-right: 1px solid var(--line); }
+.wiki-side { border-right: none; border-left: 1px solid var(--line); }
+.wiki-page { overflow-y: auto; padding: 0.8rem 1.4rem; }
+.wiki-title { display: flex; align-items: baseline; gap: 1rem; }
+.wiki-title h2 { margin: 0; }
+.wiki-area { margin-bottom: 1rem; }
+.tree-row { display: block; width: 100%; text-align: left; background: none; border: none; color: inherit; padding: 0.15rem 0.3rem; cursor: pointer; font: inherit; }
+.tree-row.on { background: #3a1d1d; }
+.wiki-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.wiki-editor { width: 100%; min-height: 60vh; font-family: Consolas, monospace; }
+.wiki-read { line-height: 1.55; }
+.wiki-read img { max-width: 100%; }
+.wiki-read a.wikilink { color: var(--accent-bright); }
+.wiki-read a.wikilink.missing { color: #e0b050; text-decoration: underline dotted; }
+.wiki-read a.wikilink.ambiguous::after { content: ' ?'; font-size: 0.8em; }
+.wiki-read blockquote { border-left: 3px solid var(--line); margin: 0.6rem 0; padding: 0.2rem 0.8rem; }
+.wiki-read blockquote.callout { border-left-color: #8b2a2a; background: #231a1b; }
+.conflict { background: #3a2a10; border: 1px solid #e0b050; padding: 0.5rem 0.8rem; margin: 0.5rem 0; }
+.modal.ask { width: min(420px, 92vw); gap: 0.6rem; }

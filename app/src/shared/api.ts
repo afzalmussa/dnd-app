@@ -64,7 +64,19 @@ export interface AppSettings {
   contentFolder: string
   role: 'player' | 'dm'
   dmFolder: string
+  notesFolder: string
+  partyWikiFolder: string
 }
+
+export interface WikiTreeNode {
+  name: string
+  path: string // inside its area, with "/" between folders; files end in .md
+  type: 'file' | 'folder'
+  children?: WikiTreeNode[]
+}
+export interface WikiPage { content: string; modified: number }
+export type WriteResult = { ok: true; modified: number } | { ok: false; conflict: true; theirs: string; modified: number }
+export type WikiArea = 'notes' | 'party'
 
 // The DM's in-game clock, shared through campaign.json in the save folder.
 export interface Campaign {
@@ -74,7 +86,18 @@ export interface Campaign {
 export interface AppApi {
   getSettings(): Promise<AppSettings>
   // Opens a folder picker. Returns the new settings, or null if cancelled.
-  chooseFolder(which: 'saveFolder' | 'contentFolder' | 'dmFolder'): Promise<AppSettings | null>
+  chooseFolder(which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder'): Promise<AppSettings | null>
+  // Wiki. Paths are relative to the area's folder. Nothing outside the two folders can be touched.
+  wikiTree(area: WikiArea): Promise<WikiTreeNode[] | null>
+  wikiRead(area: WikiArea, path: string): Promise<WikiPage>
+  wikiWrite(area: WikiArea, path: string, content: string, expectedModified: number | null, overwrite: boolean): Promise<WriteResult>
+  wikiSaveCopy(area: WikiArea, path: string, content: string): Promise<string>
+  wikiCreatePage(area: WikiArea, path: string, content?: string): Promise<void>
+  wikiCreateFolder(area: WikiArea, path: string): Promise<void>
+  wikiRename(area: WikiArea, path: string, newPath: string): Promise<string[]>
+  wikiTrash(area: WikiArea, path: string): Promise<void>
+  wikiPages(area: WikiArea): Promise<{ path: string; text: string }[]>
+  onWikiChanged(callback: (area: WikiArea) => void): () => void
   setRole(role: 'player' | 'dm'): Promise<AppSettings>
   getCampaign(): Promise<Campaign | null>
   setCampaign(campaign: Campaign): Promise<void>

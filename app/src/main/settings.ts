@@ -11,6 +11,8 @@ export interface Settings {
   contentFolder: string // corrections and homebrew; can be a shared folder
   role: 'player' | 'dm'
   dmFolder: string // the folder of party sheets the DM view reads (read-only)
+  notesFolder: string // My Notes: private notes
+  partyWikiFolder: string // Party Wiki: shared pages (empty until chosen)
 }
 
 function settingsPath(): string {
@@ -19,7 +21,7 @@ function settingsPath(): string {
 
 function defaults(): Settings {
   const saveFolder = join(app.getPath('userData'), 'characters')
-  return { saveFolder, contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', dmFolder: saveFolder }
+  return { saveFolder, contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', dmFolder: saveFolder, notesFolder: join(app.getPath('userData'), 'notes'), partyWikiFolder: '' }
 }
 
 export function loadSettings(): Settings {

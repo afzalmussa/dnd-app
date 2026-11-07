@@ -5,6 +5,20 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { AppApi } from '../shared/api'
 
 const api: AppApi = {
+  wikiTree: (area) => ipcRenderer.invoke('wikiTree', area),
+  wikiRead: (area, path) => ipcRenderer.invoke('wikiRead', area, path),
+  wikiWrite: (area, path, content, expected, overwrite) => ipcRenderer.invoke('wikiWrite', area, path, content, expected, overwrite),
+  wikiSaveCopy: (area, path, content) => ipcRenderer.invoke('wikiSaveCopy', area, path, content),
+  wikiCreatePage: (area, path, content) => ipcRenderer.invoke('wikiCreatePage', area, path, content),
+  wikiCreateFolder: (area, path) => ipcRenderer.invoke('wikiCreateFolder', area, path),
+  wikiRename: (area, path, newPath) => ipcRenderer.invoke('wikiRename', area, path, newPath),
+  wikiTrash: (area, path) => ipcRenderer.invoke('wikiTrash', area, path),
+  wikiPages: (area) => ipcRenderer.invoke('wikiPages', area),
+  onWikiChanged: (callback) => {
+    const listener = (_event: unknown, area: 'notes' | 'party') => callback(area)
+    ipcRenderer.on('wikiChanged', listener)
+    return () => ipcRenderer.removeListener('wikiChanged', listener)
+  },
   getSettings: () => ipcRenderer.invoke('getSettings'),
   chooseFolder: (which) => ipcRenderer.invoke('chooseFolder', which),
   setRole: (role) => ipcRenderer.invoke('setRole', role),
