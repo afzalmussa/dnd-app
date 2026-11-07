@@ -7,7 +7,7 @@ import re
 
 # Characters OCR often confuses with digits. Only applied to cells that must be numbers.
 LEVEL_RE = re.compile(r"^[Ll1I]evel$")
-DICE_CELL = re.compile(r"^([lI1]?)d([0-9lIO]{1,3})$", re.IGNORECASE)  # "d8", "ld6", "1d6" (Bardic Die, Sneak Attack)
+DICE_CELL = re.compile(r"^([0-9lI]{0,2})d([0-9lIO]{1,3})$", re.IGNORECASE)  # "d8", "ld6", "1d6" (Bardic Die, Sneak Attack)
 DIGIT_LOOKALIKES = {"l": "1", "I": "1", "|": "1", "O": "0", "o": "0", "S": "5", "s": "5"}
 
 
@@ -33,7 +33,7 @@ def dice_cell(token, page, log):
     die = "".join(DIGIT_LOOKALIKES.get(c, c) for c in m.group(2))
     if die not in ("4", "6", "8", "10", "12", "20"):
         return None
-    count = "1" if m.group(1) else ""
+    count = "".join(DIGIT_LOOKALIKES.get(c, c) for c in m.group(1))
     out = f"{count}d{die}"
     if out != token:
         log.append({"page": page, "rule": "table-dice", "before": token, "after": out})
@@ -159,7 +159,9 @@ def parse_features_table(words, page_no):
     header_words = [w for w in words if header_top <= _center_y(w) <= header_bottom + 1 and _center_x(w) > feature_right]
     names = []
     for cx in col_x:
-        near = sorted((w for w in header_words if abs(_center_x(w) - cx) <= 14), key=lambda w: (_center_y(w), w[0]))
+        near = sorted((w for w in header_words
+                       if abs(_center_x(w) - cx) <= 30 and min(col_x, key=lambda c: abs(c - _center_x(w))) == cx),
+                      key=lambda w: (round(_center_y(w) / 6), w[0]))  # same printed line reads left to right
         digit = next((fix_number(w[4], page_no, []) for w in near if fix_number(w[4], page_no, [])), None)
         from_row = next((t["value"] for row in header_rows for t in row if abs(t["x"] - cx) <= 8 and str(t["value"]).isdigit()), None)
         digit = from_row or digit

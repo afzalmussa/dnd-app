@@ -22,6 +22,13 @@ def letters(text):
     return re.sub(r"[^A-Z]", "", text.upper())
 
 
+def abilities_in(text):
+    """Ability ids named in a value, found in the letters only so a scan split such as 'W isdom' still counts."""
+    flat = letters(text)
+    found = [(flat.find(name.upper()), ident) for name, ident in ABILITY_IDS.items() if name.upper() in flat]
+    return [ident for _, ident in sorted(found)]
+
+
 def split_names(text):
     return [n.strip() for n in re.split(r",\s*|\s+and\s+|\s+or\s+", text) if n.strip()]
 
@@ -35,18 +42,27 @@ def read_trait_box(words):
     given to the nearest anchor above them. The box ends where the value lines stop.
     """
     mid = 306  # PHB pages are 612 wide; the box lives in the left column
-    first = next((w for w in words if w[4] == "Primary" and w[0] < mid), None)
+    first = next((w for w in words if re.fullmatch(r".{0,2}rimar.{0,2}", w[4], re.IGNORECASE) and w[0] < mid), None)
     if not first:
         return {}, ["trait box: 'Primary Ability' not found"]
     row = sorted((w for w in words if abs(w[1] - first[1]) < 4 and w[0] < mid), key=lambda w: w[0])
     value_x = next(w[0] for w in row if w[0] > first[2] + 15) - 4
 
     anchors = {}
-    for w in words:
-        if w[0] < value_x and w[1] >= first[1] - 2:
-            for label in BOX_LABELS:
-                if w[4].upper() == label.split()[0].upper() and label not in anchors:
-                    anchors[label] = (w[1] + w[3]) / 2
+    label_lines = []  # clusters of label-column words that share a line (gap of 4 points or less)
+    for w in sorted((w for w in words if w[0] < value_x and w[1] >= first[1] - 2), key=lambda w: (w[1] + w[3]) / 2):
+        y = (w[1] + w[3]) / 2
+        if label_lines and y - label_lines[-1][0] <= 4:
+            label_lines[-1][1].append(w)
+        else:
+            label_lines.append([y, [w]])
+    for _, ws in label_lines:
+        ws = sorted(ws, key=lambda w: w[0])
+        text = letters("".join(w[4] for w in ws))
+        for label in BOX_LABELS:
+            if label not in anchors and len(text) >= 4 and text.startswith(letters(label)[:len(text)]) and text[:4] == letters(label)[:4]:
+                anchors[label] = sum((w[1] + w[3]) / 2 for w in ws) / len(ws)
+                break
     # Value words: ignore lone border marks such as "I" or ":I".
     value_words = [w for w in words if value_x <= w[0] < mid and w[1] >= first[1] - 2
                    and not re.fullmatch(r"[:;|I]+", w[4])]
@@ -111,7 +127,8 @@ def find_heading(lines, start, name, min_ratio=0.85):
 
 def is_heading(line):
     norm = letters(line)
-    if norm.startswith("LEVEL") and len(line) > 6:
+    # "LEVEL 3: FRENZY" is a heading; a prose line that starts "level 1+ spells ..." is not.
+    if norm.startswith("LEVEL") and len(line) > 6 and sum(c.isupper() for c in line) >= 0.6 * sum(c.isalpha() for c in line):
         return True
     return len(norm) >= 10 and line.upper() == line and not line.endswith(".")
 
@@ -141,21 +158,35 @@ def parse_class(doc, cache_dir, book, ruleset, name, first_page, last_page, tabl
     flags += box_flags
     hit_die = None
     if "Hit Point Die" in box:
-        printed = box["Hit Point Die"].split()[0].upper()
-        die_text = re.sub(r"[LI]", "1", printed)  # "Dl2" is "D12"
-        m = re.match(r"D(\d+)", die_text)
-        hit_die = int(m.group(1)) if m else None
-        if die_text != printed:
-            fixes.append({"page": first_page, "rule": "hit-die", "before": printed, "after": die_text})
+        printed = box["Hit Point Die"]
+        m = re.match(r"[Dd]([0-9OlI]{1,2})", re.sub(r"\s+", "", printed))
+        digits = "".join({"O": "0", "l": "1", "I": "1"}.get(c, c) for c in m.group(1)) if m else ""
+        hit_die = int(digits) if digits.isdigit() else None
+        if m and digits != m.group(1):
+            fixes.append({"page": first_page, "rule": "hit-die", "before": printed.split()[0], "after": f"D{digits}"})
+    # Monk: the scan folds the hit die into the first row ("D8 per Monk level Strength and Dexterity").
+    folded = re.match(r"[Dd]\s*([0-9OlI]{1,2}) per \w+ level\s*(.*)$", box.get("Primary Ability", ""))
+    if hit_die is None and folded:
+        hit_die = int("".join({"O": "0", "l": "1", "I": "1"}.get(c, c) for c in folded.group(1)))
+        flags = [f for f in flags if "Hit Point Die" not in f]
+        flags.append("the trait box rows are merged in the scan: hit die read from the first row; primary ability and saving throws need checking")
+        box["Saving Throw"] = box["Saving Throw"] if "Saving Throw" in box else folded.group(2)
+        box["Primary Ability"] = ""
     if hit_die not in (6, 8, 10, 12):
         flags.append(f"hit die read as {hit_die}; expected 6, 8, 10 or 12")
-    primary = [ABILITY_IDS[w] for w in re.findall(r"[a-z]+", box.get("Primary Ability", "").lower()) if w in ABILITY_IDS]
-    saves = [ABILITY_IDS[w] for w in re.findall(r"[a-z]+", box.get("Saving Throw", "").lower()) if w in ABILITY_IDS]
+    primary = abilities_in(box.get("Primary Ability", ""))
+    saves = abilities_in(box.get("Saving Throw", ""))
     if len(saves) != 2:
         flags.append(f"saving throws read as {saves}; expected two")
     skills = None
+    any_skills = re.match(r"Choose any (\w+) skills", box.get("Skill Proficiencies", ""))
     m = re.match(r"Choose\s+(\w+):\s*(.+)", box.get("Skill Proficiencies", ""))
-    if m:
+    if any_skills:
+        count = {"2": 2, "3": 3, "4": 4, "TWO": 2, "THREE": 3, "FOUR": 4}.get(any_skills.group(1).upper())
+        skills = {"count": count, "from": ["any"]}
+        if count is None:
+            flags.append(f"skill choice count unreadable: '{any_skills.group(1)}'")
+    elif m:
         count = {"2": 2, "3": 3, "4": 4, "ONE": 1, "TWO": 2, "THREE": 3, "FOUR": 4}.get(m.group(1).upper())
         skills = {"count": count, "from": split_names(m.group(2))}
         if count is None:
@@ -169,6 +200,17 @@ def parse_class(doc, cache_dir, book, ruleset, name, first_page, last_page, tabl
     table = parse_features_table(doc[table_page - 1].get_text("words"), table_page)
     flags += table["flags"]
     fixes += table["fixes"]
+    feature_names = {re.sub(r"\s*\(.*?\)\s*$", "", n) for r in table["rows"] for n in re.split(r",\s*", r["featuresPrinted"]) if n}
+    for col in table["columns"]:
+        if col["name"].isdigit() or col["name"].startswith("column@"):
+            continue
+        best = max(feature_names, key=lambda n: difflib.SequenceMatcher(None, col["name"].lower(), n.lower()).ratio(), default=None)
+        if best and col["name"] != best and difflib.SequenceMatcher(None, col["name"].lower(), best.lower()).ratio() >= 0.9:
+            fixes.append({"page": table_page, "rule": "column-name-from-features", "before": col["name"], "after": best})
+            for r in table["rows"]:
+                if col["name"] in r["cells"]:
+                    r["cells"][best] = r["cells"].pop(col["name"])
+            col["name"] = best
     slot_cols = sorted((c["name"] for c in table["columns"] if c["name"].isdigit()), key=int)
     other_cols = [c["name"] for c in table["columns"] if not c["name"].isdigit()]
     progression = []
@@ -185,41 +227,49 @@ def parse_class(doc, cache_dir, book, ruleset, name, first_page, last_page, tabl
     # 3. feature text, in table order
     lines = []
     for p in range(first_page, last_page + 1):
-        if cache[p]:
-            lines += fix_text(cache[p]["text_columns"], p, fixes).split("\n")
+        if not cache[p]:
+            continue
+        text = cache[p]["text_columns"]
+        if p == table_page and "bottom" in table and cache[p]["method"] == "text-layer":
+            below = [w for w in doc[p - 1].get_text("words") if (w[1] + w[3]) / 2 > table["bottom"]]
+            text = column_text_from_words(below, doc[p - 1].rect.width / 2)  # prose after the table only
+        lines += [l for l in fix_text(text, p, fixes).split("\n") if "CHAPTER" not in letters(l)[:14]]
     ordered = [(row["level"], f) for row in progression for f in row["featuresPrinted"]
                if f.lower() != "subclass feature"]
     positions, cursor = [], 0
-    for level, fname in ordered:
+    for level, fname_full in ordered:
+        fname = re.sub(r"\s*\(.*?\)\s*$", "", fname_full)  # heading is the name without "(two uses)"
         idx = find_heading(lines, cursor, fname)
         note = None
-        if idx is None and not any(p[1] == fname for p in positions):
+        seen_before = any(re.sub(r"\s*\(.*?\)\s*$", "", p[1]) == fname for p in positions)
+        if idx is None and not seen_before:
             idx = find_heading(lines, cursor, fname, min_ratio=0.7)
             note = "heading matched loosely; check the text" if idx is not None else None
-        if idx is None and not any(p[1] == fname for p in positions):
+        if idx is None and not seen_before:
             flags.append(f"feature '{fname}' (level {level}): heading not found in the text")
         if idx is not None:
             cursor = idx + 1
-        positions.append((level, fname, idx, note))
+        positions.append((level, fname_full, idx, note))
     features, by_name = [], {}
-    for level, fname, idx, note in positions:
+    for level, fname_full, idx, note in positions:
+        fname = fname_full
         text, fflags = "", []
         if idx is not None:
             end = next((j for j in range(idx + 1, len(lines)) if is_heading(lines[j])), len(lines))
             text = tidy(lines[idx + 1:end])
             if note:
                 fflags.append(note)
-        elif fname in by_name:
-            text = by_name[fname]["text"]  # a repeat of an earlier feature (e.g. Ability Score Improvement)
+        elif re.sub(r"\s*\(.*?\)\s*$", "", fname) in by_name:
+            text = by_name[re.sub(r"\s*\(.*?\)\s*$", "", fname)]["text"]  # a repeat of an earlier feature (e.g. Ability Score Improvement)
         else:
             fflags.append("feature text not found")
         features.append({
             "id": f"feature.{slug(name)}.{slug(fname)}.{book}",
-            "name": fname, "level": level,
+            "name": fname_full, "level": level,
             "summary": first_sentence(text), "text": text,
             "source": {**source, "flags": fflags},
         })
-        by_name.setdefault(fname, features[-1])
+        by_name.setdefault(re.sub(r"\s*\(.*?\)\s*$", "", fname), features[-1])
 
     # 4. fields worked out from the table and text
     subclass_level = next((r["level"] for r in progression
@@ -232,7 +282,7 @@ def parse_class(doc, cache_dir, book, ruleset, name, first_page, last_page, tabl
         spellcasting = {"ability": None, "casterType": caster, "spellListId": f"spelllist.{slug(name)}.{book}"}
         sc = next((f for f in features if f["name"].lower().startswith("spellcasting")), None)
         if sc:
-            m = re.search(r"(\w+) is your spellcasting ability", sc["text"])
+            m = re.search(r"(\w+) is your spellcasting ability", sc["text"]) or re.search(r"spellcasting ability is (\w+)", sc["text"])
             if m and m.group(1).lower() in ABILITY_IDS:
                 spellcasting["ability"] = ABILITY_IDS[m.group(1).lower()]
         if not spellcasting["ability"]:

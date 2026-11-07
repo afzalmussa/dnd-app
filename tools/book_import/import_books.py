@@ -22,7 +22,7 @@ from parsers.origins import parse_feats, parse_species
 from parsers.spells import parse_spells
 from parsers.subclasses import parse_subclasses
 from report import background_section, feat_section, item_section, species_section, subclass_section, write_report
-from validate import compare_caster_slots, validate_background, validate_class, validate_feat, validate_item, validate_species, validate_subclass, validate_spell
+from validate import compare_caster_slots, fill_slots_by_agreement, validate_background, validate_class, validate_feat, validate_item, validate_species, validate_subclass, validate_spell
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).parent
@@ -186,6 +186,7 @@ def main():
         (ROOT / "data-pack" / args.book / "subclasses.json").write_text(json.dumps(subs, indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"Subclasses: {len(subs)} parsed, {sum(1 for x in subs if x['source']['flags'] or sub_problems[x['id']])} flagged")
 
+    fill_slots_by_agreement(classes, fixes)
     problems = {e["id"]: validate_class(e) for e in classes}
     for eid, extra in compare_caster_slots(classes).items():
         problems[eid] += extra

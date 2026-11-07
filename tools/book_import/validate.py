@@ -137,3 +137,34 @@ def validate_item(item):
     if not item["cost"]:
         problems.append("cost empty")
     return problems
+
+
+def fill_slots_by_agreement(classes, fixes):
+    """Fill spell-slot cells the scan lost when at least two other classes of the same caster type agree.
+
+    Full casters (Cleric, Wizard, Sorcerer, Bard, Druid) print the same slot table. Only empty cells are
+    filled, and each fill is logged and flagged on the class so it can be checked against the page.
+    """
+    by_type = {}
+    for c in classes:
+        sc = c.get("spellcasting")
+        if sc and sc["casterType"] and c["progression"] and c["progression"][0]["spellSlots"]:
+            by_type.setdefault(sc["casterType"], []).append(c)
+    for ctype, group in by_type.items():
+        if len(group) < 3:
+            continue
+        for c in group:
+            for r in c["progression"]:
+                for i, value in enumerate(r["spellSlots"]):
+                    if value is not None:
+                        continue
+                    others = [o["progression"][r["level"] - 1]["spellSlots"][i] for o in group
+                              if o is not c and i < len(o["progression"][r["level"] - 1]["spellSlots"])]
+                    agreed = [v for v in set(others) if v is not None and others.count(v) >= 2]
+                    if len(agreed) == 1:
+                        r["spellSlots"][i] = agreed[0]
+                        fixes.append({"page": c["source"]["page"], "rule": "slots-from-agreement", "before": None, "after": agreed[0],
+                                      "where": f"{c['name']} level {r['level']}, slot level {i + 1}"})
+                        note = f"level {r['level']} slot level {i + 1} was unreadable; filled from the other {ctype} casters. Check the page"
+                        if note not in c["source"]["flags"]:
+                            c["source"]["flags"].append(note)

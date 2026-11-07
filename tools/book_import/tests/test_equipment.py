@@ -26,3 +26,18 @@ def test_gear_heading_and_name_cleanup():
     assert clean_name("S MITH'S TOOLS") == "Smith's Tools"
     assert clean_name("ALCHEMIST'S SUPPLIES") == "Alchemist's Supplies"
     assert normalise_cost("VARIES", 1, []) == "Varies"
+
+
+def test_gear_weights_and_slot_agreement():
+    from parsers.gear import weight_pounds
+    from validate import fill_slots_by_agreement
+    assert weight_pounds("1/2 lb.") == 0.5 and weight_pounds("216.") == 2 and weight_pounds("Varies") is None
+
+    def cls(name, v):
+        row = {"level": 1, "spellSlots": [v]}
+        return {"name": name, "id": name, "source": {"page": 1, "flags": []},
+                "spellcasting": {"casterType": "full"}, "progression": [row]}
+    a, b, c = cls("A", None), cls("B", 4), cls("C", 4)
+    log = []
+    fill_slots_by_agreement([a, b, c], log)
+    assert a["progression"][0]["spellSlots"] == [4] and log and a["source"]["flags"]
