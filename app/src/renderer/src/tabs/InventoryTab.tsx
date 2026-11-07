@@ -32,6 +32,8 @@ export function InventoryTab() {
       if (match) {
         row.itemId = match.id
         if (row.weight === 0 && match.weight !== null) row.weight = match.weight
+        // A magic item says its rarity and whether it needs attunement (the 3-item limit is on this tab).
+        if (!row.notes && match.rarity) row.notes = `${match.rarity}${match.attunement ? ', requires attunement' : ''}`
       }
     })
   }

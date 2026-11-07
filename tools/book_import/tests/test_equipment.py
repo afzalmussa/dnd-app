@@ -41,3 +41,11 @@ def test_gear_weights_and_slot_agreement():
     log = []
     fill_slots_by_agreement([a, b, c], log)
     assert a["progression"][0]["spellSlots"] == [4] and log and a["source"]["flags"]
+
+
+def test_magic_item_type_line():
+    from parsers.magic_items import TYPE_LINE
+    m = TYPE_LINE.match("Wondrous item, rare (requires attunement by a spellcaster)")
+    assert m.group(1) == "Wondrous item" and m.group(3) == "rare" and m.group(4).startswith("requires attunement")
+    assert TYPE_LINE.match("Armor (chain shirt), rare").group(2) == "chain shirt"
+    assert TYPE_LINE.match("You gain a bonus to AC while you wear this armor.") is None

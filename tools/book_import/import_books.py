@@ -18,6 +18,7 @@ from parsers.classes import letters, parse_class, slug
 from parsers.backgrounds import parse_backgrounds, parse_text_backgrounds
 from parsers.gear import parse_gear, parse_gear_table
 from parsers.equipment import parse_armor, parse_weapons
+from parsers.magic_items import parse_magic_items
 from parsers.legacy import parse_legacy_feats, parse_subclasses_2014, parse_subclasses_by_markers
 from parsers.origins import parse_feats, parse_species
 from parsers.spells import parse_spells
@@ -41,7 +42,7 @@ def main():
     book = books[args.book]
     sections = json.loads((HERE / "sections.json").read_text(encoding="utf-8")).get(args.book, {})
     kind, _, names = (args.only or "").partition(":")
-    if kind not in ("", "classes", "spells", "feats", "species", "subclasses", "backgrounds", "equipment"):
+    if kind not in ("", "classes", "spells", "feats", "species", "subclasses", "backgrounds", "equipment", "magicitems"):
         sys.exit("Implemented so far: classes, subclasses, spells, feats, species, backgrounds, equipment.")
     wanted = [n for n in names.split(",") if n] if kind == "classes" else []
     wanted = wanted or (list(sections.get("classes", {})) if kind in ("", "classes") else [])
@@ -87,6 +88,15 @@ def main():
         (out_dir / "species.json").write_text(json.dumps(species, indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"Species: {len(species)} parsed, {sum(1 for s in species if s['source']['flags'] or sp_p[s['id']])} flagged")
 
+    if kind in ("", "magicitems") and "magic_items" in sections:
+        mi = sections["magic_items"]
+        magic, mi_fixes = parse_magic_items(ROOT / "ocr-cache", args.book, book["ruleset"], mi["first"], mi["last"])
+        fixes += mi_fixes
+        clean_entries(magic, fixes)
+        extras.append(item_section(magic, {}))
+        (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
+        (ROOT / "data-pack" / args.book / "items.json").write_text(json.dumps(magic, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"Magic items: {len(magic)} parsed, {sum(1 for i in magic if i['source']['flags'])} flagged")
     if kind in ("", "backgrounds") and "text_backgrounds" in sections:
         tb = sections["text_backgrounds"]
         feat_file = ROOT / "data-pack" / args.book / "feats.json"

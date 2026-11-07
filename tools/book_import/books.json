@@ -1,6 +1,23 @@
 {
-  "phb24": {"file": "5.5e Player's Handbook.pdf", "ruleset": "2024"},
-  "xge":   {"file": "Xanathar's Guide to Everything - Deluxe.pdf", "ruleset": "2014"},
-  "tce":   {"file": "Tasha\u2019s Cauldron of Everything.pdf", "ruleset": "2014"},
-  "bgg":   {"file": "Bigby Presents Glory of the Giants.pdf", "ruleset": "2014"}
+  "phb24": {
+    "file": "5.5e Player's Handbook.pdf",
+    "ruleset": "2024"
+  },
+  "xge": {
+    "file": "Xanathar's Guide to Everything - Deluxe.pdf",
+    "ruleset": "2014"
+  },
+  "tce": {
+    "file": "Tasha\u2019s Cauldron of Everything.pdf",
+    "ruleset": "2014"
+  },
+  "bgg": {
+    "file": "Bigby Presents Glory of the Giants.pdf",
+    "ruleset": "2014"
+  },
+  "dmg": {
+    "file": "5.5e Dungeon Master's Guide.pdf",
+    "ruleset": "2014",
+    "note": "The file is named 5.5e but its first printing line says December 2014: it is the 2014 DMG, so its content is legacy."
+  }
 }

@@ -256,5 +256,11 @@
         "RUNE CARVER"
       ]
     }
+  },
+  "dmg": {
+    "magic_items": {
+      "first": 150,
+      "last": 232
+    }
   }
 }

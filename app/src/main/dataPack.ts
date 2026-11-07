@@ -26,12 +26,14 @@ interface RawItem {
 }
 
 export function listItems(): ItemInfo[] {
-  return mergedContent('item').map((raw: RawItem & { weapon?: { mastery: string | null } }) => ({
+  return mergedContent('item').map((raw: RawItem & { weapon?: { mastery: string | null }; magic?: { rarity: string }; attunement?: boolean }) => ({
     id: raw.id,
     name: raw.name,
     category: raw.category,
     weight: parsePounds(raw.weight),
     mastery: raw.weapon?.mastery ?? null,
+    rarity: raw.magic?.rarity ?? null,
+    attunement: !!raw.attunement,
     cost: raw.cost,
     book: raw.source.book,
     ruleset: raw.source.ruleset

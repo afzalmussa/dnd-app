@@ -20,6 +20,8 @@ export interface ItemInfo {
   category: string
   weight: number | null // pounds; null when the book gives none or "Varies"
   mastery: string | null // weapon mastery property, for weapons
+  rarity: string | null // magic items
+  attunement: boolean // magic items that need attunement
   cost: string | null
   book: string
   ruleset: string
