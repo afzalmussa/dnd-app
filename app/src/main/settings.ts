@@ -8,6 +8,7 @@ import { join } from 'node:path'
 
 interface Settings {
   saveFolder: string
+  contentFolder: string // corrections and homebrew; can be a shared folder
 }
 
 function settingsPath(): string {
@@ -15,7 +16,7 @@ function settingsPath(): string {
 }
 
 function defaults(): Settings {
-  return { saveFolder: join(app.getPath('userData'), 'characters') }
+  return { saveFolder: join(app.getPath('userData'), 'characters'), contentFolder: join(app.getPath('userData'), 'user-content') }
 }
 
 export function loadSettings(): Settings {

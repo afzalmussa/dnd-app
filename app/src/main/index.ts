@@ -13,7 +13,8 @@ import {
   saveCharacter,
   writeCharacterFile
 } from './characterFiles'
-import { getClassData, listFeats, listItems, listSpells } from './dataPack'
+import { getClassData, listFeats, listItems, listSpells, mergedContent } from './dataPack'
+import { deleteUserEntry, saveUserEntry, type ContentKind } from './userContent'
 import { getSaveFolder } from './settings'
 
 function createWindow(): BrowserWindow {
@@ -64,6 +65,9 @@ function createWindow(): BrowserWindow {
 
 function registerHandlers(): void {
   ipcMain.handle('listItems', () => listItems())
+  ipcMain.handle('listContent', (_e, kind: ContentKind) => mergedContent(kind))
+  ipcMain.handle('saveContent', (_e, kind: ContentKind, entry: { id: string }) => saveUserEntry(kind, entry))
+  ipcMain.handle('deleteContent', (_e, kind: ContentKind, id: string) => deleteUserEntry(kind, id))
   ipcMain.handle('listFeats', () => listFeats())
   ipcMain.handle('getClassData', () => getClassData())
   ipcMain.handle('listSpells', () => listSpells())

@@ -56,7 +56,15 @@ export interface FeatInfo {
   ruleset: string
 }
 
+export type ContentKind = 'spell' | 'feat' | 'item' | 'class' | 'subclass' | 'species' | 'background'
+export type ContentOrigin = 'book' | 'edited' | 'user'
+
 export interface AppApi {
+  // Book entries merged with your corrections and homebrew (each has `_origin`).
+  listContent(kind: ContentKind): Promise<Record<string, any>[]>
+  saveContent(kind: ContentKind, entry: Record<string, any>): Promise<void>
+  // Removes your version; a book entry comes back, homebrew is deleted.
+  deleteContent(kind: ContentKind, id: string): Promise<void>
   listFeats(): Promise<FeatInfo[]>
   getClassData(): Promise<{ classes: unknown[]; subclasses: unknown[]; multiclass: unknown }>
   listSpells(): Promise<SpellInfo[]>

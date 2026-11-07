@@ -284,3 +284,14 @@ button.link { background: none; border: none; color: inherit; text-decoration: u
 .chip { background: #3a1d1d; border: 1px solid #8b2a2a; border-radius: 10px; padding: 0 0.5rem; font-size: 0.85em; }
 .play-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; }
 .modifier-row { display: flex; gap: 0.4rem; margin: 0.25rem 0; flex-wrap: wrap; }
+
+.modal.content-editor { width: min(1200px, 96vw); }
+.editor-split { display: grid; grid-template-columns: 300px 1fr; gap: 1rem; overflow: hidden; flex: 1; min-height: 0; }
+.editor-list { display: flex; flex-direction: column; gap: 0.4rem; min-height: 0; }
+.editor-items { overflow-y: auto; flex: 1; }
+.editor-form { overflow-y: auto; }
+.link-row { display: block; width: 100%; text-align: left; background: none; border: none; color: inherit; padding: 0.2rem 0.3rem; cursor: pointer; }
+.link-row.on { background: #3a1d1d; }
+.chip.warn { border-color: #e0b050; }
+.json-editor { width: 100%; font-family: Consolas, monospace; font-size: 0.85em; }
+.editor-actions { display: flex; gap: 0.8rem; align-items: center; margin-top: 0.6rem; }

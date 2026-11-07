@@ -3,6 +3,7 @@
 import { exhaustionRollPenalty } from '../../shared/rules/exhaustion'
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createBlankCharacter } from '../../shared/character'
+import { ContentEditor } from './editor/ContentEditor'
 import type { RollMode } from '../../shared/rules/dice'
 import type { CharacterFile } from '../../shared/schema/character'
 import { CharacterPicker } from './CharacterPicker'
@@ -24,6 +25,7 @@ export default function App() {
   const [showPicker, setShowPicker] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
+  const [showEditor, setShowEditor] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [rolls, setRolls] = useState<RollEntry[]>([])
   const [rollMode, setRollMode] = useState<RollMode>('normal')
@@ -173,11 +175,13 @@ export default function App() {
 
   return (
     <div className="app">
+      {showEditor && <ContentEditor onClose={() => setShowEditor(false)} />}
       <header className="toolbar">
         <strong className="app-name">DnD Character Manager</strong>
         <button onClick={() => setShowPicker(true)}>Characters</button>
         <button onClick={exportFile} disabled={!character}>Export</button>
         <button onClick={importFile}>Import</button>
+        <button onClick={() => setShowEditor(true)} title="Correct imported entries or add your own spells, feats, items and more">Content editor</button>
         <button className={editing ? 'active' : ''} disabled={!character} onClick={() => setEditing(!editing)}>
           {editing ? 'Done editing' : 'Edit sheet'}
         </button>
