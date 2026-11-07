@@ -17,6 +17,7 @@ from parsers.classes import parse_class
 from parsers.backgrounds import parse_backgrounds
 from parsers.gear import parse_gear
 from parsers.equipment import parse_armor, parse_weapons
+from parsers.legacy import parse_legacy_feats, parse_subclasses_2014
 from parsers.origins import parse_feats, parse_species
 from parsers.spells import parse_spells
 from parsers.subclasses import parse_subclasses
@@ -104,6 +105,33 @@ def main():
         (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
         (ROOT / "data-pack" / args.book / "items.json").write_text(json.dumps(items, indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"Equipment (weapons, armor, tools, gear): {len(items)} parsed, {sum(1 for i in items if i['source']['flags'] or ip[i['id']])} flagged")
+
+    # 2014 books (Xanathar's, Tasha's): subclasses are matched to the PHB class of the same name.
+    phb_classes = {}
+    phb_file = ROOT / "data-pack" / "phb24" / "classes.json"
+    if phb_file.exists():
+        phb_classes = {c["id"]: c for c in json.loads(phb_file.read_text(encoding="utf-8"))}
+    if kind in ("", "subclasses") and "legacy_subclasses" in sections:
+        subs, sub_problems, top = [], {}, []
+        for cname, s_ in sections["legacy_subclasses"].items():
+            found, sub_fixes, errs = parse_subclasses_2014(ROOT / "ocr-cache", args.book, book["ruleset"], cname.title(), s_["article"], s_["first"], s_["last"])
+            subs += found
+            fixes += sub_fixes
+            top += errs
+            for sub in found:
+                cls = phb_classes.get(sub["classId"])
+                sub_problems[sub["id"]] = validate_subclass(sub, cls) if cls else ["PHB class not imported yet; levels not checked"]
+        extras.append("".join(f"<p class='bad'>{e}</p>" for e in top) + subclass_section(subs, sub_problems))
+        (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
+        (ROOT / "data-pack" / args.book / "subclasses.json").write_text(json.dumps(subs, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"Subclasses: {len(subs)} parsed, {sum(1 for x in subs if x['source']['flags'] or sub_problems[x['id']] or any(f['source']['flags'] for f in x['features']))} with flags")
+    if kind in ("", "feats") and "legacy_feats" in sections:
+        lf, lf_fixes = parse_legacy_feats(ROOT / "ocr-cache", args.book, book["ruleset"], sections["legacy_feats"]["first"], sections["legacy_feats"]["last"])
+        fixes += lf_fixes
+        extras.append(feat_section(lf, {}))
+        (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
+        (ROOT / "data-pack" / args.book / "feats.json").write_text(json.dumps(lf, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"Feats: {len(lf)} parsed, {sum(1 for f in lf if f['source']['flags'])} flagged")
 
     if classes and kind in ("", "classes", "subclasses"):
         subs, sub_problems, top = [], {}, []

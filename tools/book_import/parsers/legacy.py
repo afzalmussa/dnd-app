@@ -1,0 +1,135 @@
+"""Parse 2014-style content: Xanathar's/Tasha's subclasses and Tasha's feats.
+
+Subclass layout: a capitals heading, intro text, a small "<NAME> FEATURES" table
+("3rd Ancestral Protectors"), then each feature as a capitals heading with its text.
+"""
+import difflib
+import re
+
+from parsers.classes import letters, slug
+from parsers.origins import load_lines, name_is_broken, tidy
+from parsers.subclasses import caps_share
+
+TABLE_ROW = re.compile(r"^(\d{1,2})\s?(?:st|nd|rd|th)\s+(.+)$")
+SUBCLASS_LEVEL = 3  # table rule: 2014 subclasses are chosen at level 3, earlier features arrive then
+
+
+def similar(a, b):
+    return difflib.SequenceMatcher(None, letters(a), letters(b)).ratio()
+
+
+def subclass_names_from_intro(lines, article):
+    """Read 'The following options are available to a barbarian ...: the Path of X, the Path of Y, and the Path of Z.'"""
+    i = next((i for i, l in enumerate(lines) if re.search(rf"available to {article}\b", l)), None)
+    if i is None:
+        return []
+    sentence = tidy(lines[i:i + 8])
+    m = re.search(r":\s*(.+?)\.\s", sentence + " ")
+    if not m:
+        return []
+    parts = re.split(r",\s*(?:and\s+)?|\s+and\s+the\s+", m.group(1))
+    return [re.sub(r"^(?:and\s+)?the\s+", "", p.strip(), flags=re.IGNORECASE) for p in parts if p.strip()]
+
+
+def is_feature_heading(line):
+    return len(line) >= 4 and caps_share(line) > 0.9 and not line.endswith("FEATURES")
+
+
+def parse_subclasses_2014(cache_dir, book, ruleset, class_name, article, first, last):
+    fixes, out = [], []
+    lines, pages, ocr_pages = load_lines(cache_dir, book, first, last, fixes)
+    names = subclass_names_from_intro(lines, article)
+    if not names:
+        return [], fixes, [f"{class_name}: subclass names not read from the intro sentence"]
+    # Subclass headings: capitals lines that are not the table title.
+    heads, cursor = [], 0
+    for name in names:
+        idx = next((i for i in range(cursor, len(lines))
+                    if len(lines[i]) < 60 and caps_share(lines[i]) > 0.7 and not letters(lines[i]).endswith("FEATURES")
+                    and similar(lines[i], name) >= 0.8), None)
+        heads.append(idx)
+        if idx is not None:
+            cursor = idx + 1
+    for k, name in enumerate(names):
+        flags, h = [], heads[k]
+        if h is None:
+            out.append({"id": f"subclass.{slug(name)}.{book}", "kind": "subclass", "name": name,
+                        "classId": f"class.{slug(class_name)}.phb24", "summary": "", "text": "", "features": [],
+                        "source": {"book": book, "ruleset": ruleset, "page": None, "ocrUsed": False,
+                                   "flags": ["heading not found in the text"]}})
+            continue
+        end = next((j for j in heads[k + 1:] if j is not None), len(lines))
+        block = lines[h + 1:end]
+        t = next((i for i, l in enumerate(block) if letters(l).endswith("FEATURES") and caps_share(l) > 0.7), None)
+        if t is None:
+            flags.append("features table not found")
+            table = []
+        else:
+            table, j = [], t + 1
+            while j < len(block) and j < t + 4 and not TABLE_ROW.match(block[j]):
+                j += 1  # skip the "Barbarian / Level Feature" heading lines
+            while j < len(block) and TABLE_ROW.match(block[j]):
+                m = TABLE_ROW.match(block[j])
+                for part in re.split(r",\s*", m.group(2)):
+                    table.append((int(m.group(1)), re.sub(r"\s*\(.*?\)\s*$", "", part).strip(), part.strip()))
+                j += 1
+        first_seen, features = {}, []
+        for printed, fname, label in table:
+            fflags = []
+            level = max(printed, SUBCLASS_LEVEL)
+            if level != printed:
+                fflags.append(f"printed at level {printed}; granted at level {level} by the table rule")
+            if fname not in first_seen:
+                idx = next((i for i, l in enumerate(block) if is_feature_heading(l) and similar(l, fname) >= 0.8 and i > (t or 0)), None)
+                if idx is None:
+                    text = ""
+                    fflags.append("feature heading not found in the text")
+                else:
+                    stop = next((i for i in range(idx + 1, len(block)) if is_feature_heading(block[i])), len(block))
+                    text = tidy(block[idx + 1:stop])
+                first_seen[fname] = text
+            else:
+                text = first_seen[fname]  # a feature that grows (e.g. Spirit Shield) is described once
+            dice = re.search(r"\((\d+d\d+)\)", label)
+            if dice and dice.group(1) not in text:
+                found = sorted(set(re.findall(r"\b\d+d\d+\b", text)))
+                fflags.append(f"table says {dice.group(1)} but the feature text has {found}; possible OCR slip in one of them")
+            if name_is_broken(fname, 0.1):
+                fflags.append(f"name '{fname}' contains non-words; check against the page")
+            features.append({
+                "id": f"feature.{slug(name)}.{slug(label)}.{book}", "name": label, "level": level, "printedLevel": printed,
+                "summary": (re.match(r"(.+?[.!?])(\s|$)", text) or [None, text[:200]])[1][:240], "text": text,
+                "source": {"book": book, "ruleset": ruleset, "page": pages[h], "ocrUsed": pages[h] in ocr_pages, "flags": fflags},
+            })
+        if not features:
+            flags.append("no features found")
+        out.append({"id": f"subclass.{slug(name)}.{book}", "kind": "subclass", "name": name,
+                    "classId": f"class.{slug(class_name)}.phb24", "summary": "", "text": "", "features": features,
+                    "source": {"book": book, "ruleset": ruleset, "page": pages[h], "ocrUsed": pages[h] in ocr_pages, "flags": flags}})
+    return out, fixes, []
+
+
+def parse_legacy_feats(cache_dir, book, ruleset, first, last):
+    """Tasha's feats: a capitals name, an optional 'Prerequisite:' line, then the benefits."""
+    fixes, feats = [], []
+    lines, pages, ocr_pages = load_lines(cache_dir, book, first, last, fixes)
+    heads = [i for i, l in enumerate(lines) if len(l) >= 4 and caps_share(l) > 0.9 and l != "FEATS" and len(l) < 40]
+    # The same name twice in a row is a page break inside one feat.
+    heads = [i for n, i in enumerate(heads) if n == 0 or letters(lines[i]) != letters(lines[heads[n - 1]])]
+    for n, i in enumerate(heads):
+        name = lines[i].title()
+        flags = [f"name '{name}' contains non-words; check against the page"] if name_is_broken(name, 0.1) else []
+        end = heads[n + 1] if n + 1 < len(heads) else len(lines)
+        body = [l for l in lines[i + 1:end] if letters(l) != letters(lines[i])]
+        prereq = None
+        if body and body[0].startswith("Prerequisite"):
+            prereq = re.sub(r"^Prerequisite:?\s*", "", body[0])
+            body = body[1:]
+        text = tidy(body)
+        feats.append({
+            "id": f"feat.{slug(name)}.{book}", "kind": "feat", "name": name,
+            "source": {"book": book, "ruleset": ruleset, "page": pages[i], "ocrUsed": pages[i] in ocr_pages, "flags": flags},
+            "category": "legacy", "prerequisite": {"printed": prereq, "level": None, "abilities": {}} if prereq else None,
+            "repeatable": False, "summary": (re.match(r"(.+?[.!?])(\s|$)", text) or [None, text[:200]])[1][:240], "text": text,
+        })
+    return feats, fixes
