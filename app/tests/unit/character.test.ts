@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { CharacterFileError, createBlankCharacter, fileNameFor, normalizeCharacter } from '../../src/shared/character'
-import { ABILITIES, CLASS_NAMES, CONDITIONS, DAMAGE_TYPES, SKILLS } from '../../src/shared/coreRules'
+import {
+  ABILITIES,
+  ARMOR_TRAINING,
+  CLASS_NAMES,
+  CONDITIONS,
+  DAMAGE_TYPES,
+  LANGUAGES,
+  SKILLS,
+  TOOLS,
+  WEAPON_CATEGORIES
+} from '../../src/shared/coreRules'
 
 describe('normalizeCharacter', () => {
   it('round-trips a blank character through JSON unchanged', () => {
@@ -49,7 +59,11 @@ describe('coreRules.json name lists', () => {
   it.each([
     ['classes', CLASS_NAMES],
     ['damage types', DAMAGE_TYPES],
-    ['conditions', CONDITIONS]
+    ['conditions', CONDITIONS],
+    ['armor training', ARMOR_TRAINING],
+    ['weapon categories', WEAPON_CATEGORIES],
+    ['tools', TOOLS],
+    ['languages', LANGUAGES]
   ])('%s are non-empty and have no duplicates', (_label, list) => {
     expect(list.length).toBeGreaterThan(0)
     expect(new Set(list).size).toBe(list.length)

@@ -20,3 +20,7 @@ export const SKILLS = data.skills as SkillInfo[]
 export const CLASS_NAMES: string[] = data.classes
 export const DAMAGE_TYPES: string[] = data.damageTypes
 export const CONDITIONS: string[] = data.conditions
+export const ARMOR_TRAINING: string[] = data.armorTraining
+export const WEAPON_CATEGORIES: string[] = data.weaponCategories
+export const TOOLS: string[] = data.tools
+export const LANGUAGES: string[] = data.languages

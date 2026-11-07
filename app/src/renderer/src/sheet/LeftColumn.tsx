@@ -1,6 +1,6 @@
 // Left column: proficiency bonus, ability scores and saves, skills, and other proficiencies.
 
-import { ABILITIES, SKILLS } from '../../../shared/coreRules'
+import { ABILITIES, ARMOR_TRAINING, LANGUAGES, SKILLS, TOOLS, WEAPON_CATEGORIES } from '../../../shared/coreRules'
 import {
   formatBonus,
   isSaveProficient,
@@ -109,22 +109,23 @@ export function LeftColumn() {
       </Section>
 
       <Section title="Proficiencies and Languages">
-        <ProficiencyList label="Armor" field="armor" />
-        <ProficiencyList label="Weapons" field="weapons" />
-        <ProficiencyList label="Tools" field="tools" />
-        <ProficiencyList label="Languages" field="languages" />
+        <ProficiencyList label="Armor" field="armor" options={ARMOR_TRAINING} />
+        <ProficiencyList label="Weapons" field="weapons" options={WEAPON_CATEGORIES} />
+        <ProficiencyList label="Tools" field="tools" options={TOOLS} />
+        <ProficiencyList label="Languages" field="languages" options={LANGUAGES} />
       </Section>
     </div>
   )
 }
 
-function ProficiencyList(props: { label: string; field: keyof Omit<Proficiencies, 'savingThrows' | 'skills'> }) {
+function ProficiencyList(props: { label: string; field: keyof Omit<Proficiencies, 'savingThrows' | 'skills'>; options: string[] }) {
   const { character, update, editing } = useSheet()
   return (
     <div className="proficiency-list">
       <div className="small-label">{props.label}</div>
       <TagList
         items={character.proficiencies[props.field]}
+        options={props.options}
         editable={editing}
         onChange={(items) => update((c) => { c.proficiencies[props.field] = items })}
       />
