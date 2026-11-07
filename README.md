@@ -91,7 +91,7 @@ Secrets are only as private as the Drive folder: share each player's folder with
 
 ## Encounters (DM)
 
-**Encounters** in the toolbar (DM only): every party member with live health and one line of battle numbers (AC, initiative, passive Perception, speed, slots, conditions), refreshed from the DM folder every few seconds. **Add enemy** is a search box over the Monster Manual (504 stat blocks, imported with `python toolsook_import\import_books.py --book mm`); picking one fills in its numbers. Enemy abilities appear as chips: hover one to read what it does. There are no roll buttons, you roll your own dice. Enter initiative, press Next turn, use Dmg / Heal on enemies. Total XP is shown. The encounter is remembered on this PC. Difficulty ratings are not shown: the XP threshold tables live in the DMG and the data pack only has the 2014 one.
+**Encounters** in the toolbar (DM only): every party member with live health and one line of battle numbers (AC, initiative, passive Perception, speed, slots, conditions), refreshed from the DM folder every few seconds. **Add enemy** is a search box over the Monster Manual (504 stat blocks, imported with `python tools\book_import\import_books.py --book mm`); picking one fills in its numbers. Enemy abilities appear as chips: hover one to read what it does. There are no roll buttons, you roll your own dice. Enter initiative, press Next turn, use Dmg / Heal on enemies. Total XP is shown. The encounter is remembered on this PC. Difficulty ratings are not shown: the XP threshold tables live in the DMG and the data pack only has the 2014 one.
 
 ## Players' edition
 
