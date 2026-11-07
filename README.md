@@ -44,3 +44,12 @@ cd tools\book_import
 ```
 
 Needs Tesseract at `C:\Program Files\Tesseract-OCR`. Output: `data-pack/phb24/classes.json`, `reports/import-report-phb24.html`, `reports/fixes-phb24.json`.
+
+## Using the sheet (Milestone 3 pieces)
+
+- **Spells tab:** type a spell name in "Add a spell" and pick it from the list. School, casting time, range, components, duration and the description are copied from the book data. Click a spell's name to open its details.
+- **Inventory tab:** pick an item name from the list to fill in its weight. The tab shows carried weight against the limit (Strength x 15 lb).
+- **Level up** (top bar): a guided wizard. It lists what the new level gives you and asks only for the choices that level needs: hit points, subclass, ability score improvement or feat, new cantrips and spells, expertise, weapon mastery. A new class starts at level 1 (multiclassing), with the PHB prerequisite check and multiclass spell slots.
+- All of it reads `data-pack/` (made by the book import). Without it, the lists are empty and you can still type everything by hand.
+
+Re-run the full import: `python tools\book_import\import_books.py --book phb24` (and `xge`, `tce`, `bgg`), then `python tools\book_import\multiclass.py`.
