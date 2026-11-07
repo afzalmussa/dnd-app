@@ -15,7 +15,8 @@ TRAIT_START = re.compile(r"^([A-Z][A-Za-z'’-]*(?: [A-Za-z'’-]+){0,4})\.\s+(\
 
 def name_is_broken(name):
     """True when a name has pieces that are not words, e.g. 'A Lert' (a split caused by the drop-cap)."""
-    return any(zipf_frequency(t.lower(), 'en') == 0 for t in re.findall(r"[A-Za-z]+", name.replace("'", "")))
+    tokens = re.findall(r"[A-Za-z]+", name.replace("'", ""))
+    return any(len(t) == 1 or zipf_frequency(t.lower(), "en") < 1.5 for t in tokens)
 
 
 def tidy(lines):
