@@ -68,3 +68,19 @@ def validate_spell(s):
     if not s["text"]:
         problems.append("no description text")
     return problems
+
+
+def validate_feat(f):
+    problems = []
+    if not f["text"]:
+        problems.append("no description text")
+    if f["category"] == "General" and not f["prerequisite"]:
+        problems.append("General feat without a prerequisite line; check the page")
+    return problems
+
+
+def validate_species(s):
+    problems = [f"{k} is empty" for k in ("creatureType", "size", "speed") if not s[k]]
+    if not s["traits"]:
+        problems.append("no traits")
+    return problems

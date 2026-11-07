@@ -19,3 +19,10 @@ def test_validate_spell_reports_empty_fields():
     s = {"level": None, "school": "Evocation", "castingTime": "Action", "range": "Self",
          "components": None, "duration": "Instantaneous", "text": "x"}
     assert validate_spell(s) == ["level is empty", "components is empty"]
+
+
+def test_feat_prerequisite_and_broken_names():
+    from parsers.origins import parse_prerequisite, name_is_broken
+    p = parse_prerequisite("Prerequisite: Level 4+, Dexterity 13+")
+    assert p["level"] == 4 and p["abilities"] == {"dex": 13}
+    assert name_is_broken("A Lert") and not name_is_broken("Alert")

@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def esc(v):
-    return html.escape(str(v))
+    return "" if v is None else html.escape(str(v))
 
 
 def class_card(e, problems):
@@ -37,7 +37,7 @@ def class_card(e, problems):
     return "\n".join(out)
 
 
-def write_report(path, book, classes, problems_by_id, fixes, spells=(), spell_problems=None):
+def write_report(path, book, classes, problems_by_id, fixes, spells=(), spell_problems=None, extras=()):
     flagged = [c for c in classes if c["source"]["flags"] or problems_by_id.get(c["id"])]
     clean = [c for c in classes if c not in flagged]
     by_rule = {}
@@ -51,6 +51,8 @@ def write_report(path, book, classes, problems_by_id, fixes, spells=(), spell_pr
         body.append(class_card(c, problems_by_id.get(c["id"], [])))
     if spells:
         body.append(spell_section(spells, spell_problems or {}))
+    for html_part in extras:
+        body.append(html_part)
     css = ("body{font:14px system-ui;max-width:1100px;margin:1em auto;padding:0 1em}"
            "section{border:1px solid #ccc;border-radius:6px;padding:0 1em 1em;margin:1em 0}"
            ".flagged{border-color:#c33;background:#fff6f6}small{color:#666;font-weight:normal}"
@@ -80,4 +82,30 @@ def spell_section(spells, problems_by_id):
                    f"<td>{esc(comp)}</td><td>{esc(s['duration'])}</td><td>{esc(', '.join(s['classLists']))}</td>"
                    f"<td class='bad'>{esc('; '.join(f))}</td></tr>")
     out.append("</table>")
+    return "\n".join(out)
+
+
+def feat_section(feats, problems_by_id):
+    def flags(f):
+        return f["source"]["flags"] + problems_by_id.get(f["id"], [])
+    out = [f"<h1>Feats ({len(feats)})</h1>", "<table><tr><th>Name</th><th>Page</th><th>Category</th><th>Prerequisite</th><th>Repeatable</th><th>Flags</th></tr>"]
+    for f in sorted(feats, key=lambda f: (not flags(f), f["source"]["page"] or 0)):
+        pre = (f["prerequisite"] or {}).get("printed", "")
+        out.append(f"<tr class='{'flagged' if flags(f) else ''}'><td>{esc(f['name'])}</td><td>{esc(f['source']['page'])}</td><td>{esc(f['category'])}</td>"
+                   f"<td>{esc(pre)}</td><td>{'yes' if f['repeatable'] else ''}</td><td class='bad'>{esc('; '.join(flags(f)))}</td></tr>")
+    out.append("</table>")
+    return "\n".join(out)
+
+
+def species_section(species, problems_by_id):
+    def flags(s):
+        return s["source"]["flags"] + problems_by_id.get(s["id"], [])
+    out = [f"<h1>Species ({len(species)})</h1>"]
+    for s in sorted(species, key=lambda s: (not flags(s), s["source"]["page"] or 0)):
+        out.append(f"<section class='{'flagged' if flags(s) else ''}'><h2>{esc(s['name'])} <small>PDF page {esc(s['source']['page'])}</small></h2>")
+        if flags(s):
+            out.append("<ul class='flags'>" + "".join(f"<li>{esc(x)}</li>" for x in flags(s)) + "</ul>")
+        out.append(f"<p>{esc(s['creatureType'])} · {esc(s['size'])} · {esc(s['speed'])}</p><ul>")
+        out += [f"<li><b>{esc(t['name'])}</b>: {esc(t['text'][:300])}</li>" for t in s["traits"]]
+        out.append("</ul></section>")
     return "\n".join(out)

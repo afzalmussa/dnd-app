@@ -2,6 +2,8 @@
   "_note": "PDF page numbers (as the PDF viewer shows them) for each class. Read from the page survey, not from memory. 'table' is the page with the class features table.",
   "phb24": {
     "spells": {"first": 236, "last": 346},
+    "feats": {"first": 199, "last": 210},
+    "species": {"first": 185, "last": 197},
     "classes": {
       "barbarian": {"first": 50, "last": 57, "table": 51},
       "cleric": {"first": 68, "last": 77, "table": 69},

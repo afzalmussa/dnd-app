@@ -72,7 +72,7 @@ def read_trait_box(words):
     for label, value in fields.items():
         value = re.sub(r"(\w)- ([a-z])", r"\1\2", value)  # "Na- ture" -> "Nature"
         value = re.sub(r"\bA or 8\b", "A or B", value)    # OCR slip: B read as 8
-        value = re.sub(r"\s+[1iIl|]$", "", value)         # stray border mark after the last word
+        value = re.sub(r"(\s+[1iIl|])+$", "", value)       # stray border marks after the last word
         fields[label] = "None" if letters(value) == "NONE" else value  # "No ne" -> "None"
     return fields, flags
 
@@ -163,7 +163,7 @@ def parse_class(doc, cache_dir, book, ruleset, name, first_page, last_page, tabl
     else:
         flags.append("skill choices not read from the trait box")
     if skills:
-        skills["from"] = [repair_skill(n, skills_known, first_page, fixes, flags) for n in skills["from"]]
+        skills["from"] = [re.sub(r"^or ", "", repair_skill(n, skills_known, first_page, fixes, flags)) for n in skills["from"]]
 
     # 2. features table
     table = parse_features_table(doc[table_page - 1].get_text("words"), table_page)
