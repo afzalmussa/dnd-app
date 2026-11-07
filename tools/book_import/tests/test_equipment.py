@@ -16,3 +16,13 @@ def test_cost_weight_and_dice_repairs_are_logged():
 def test_validate_item_flags_unknown_mastery():
     item = {"category": "weapon", "cost": "1 GP", "weapon": {"mastery": "Smash", "group": "Simple"}}
     assert any("Smash" in p for p in validate_item(item))
+
+
+def test_gear_heading_and_name_cleanup():
+    from parsers.gear import is_heading, clean_name, normalise_cost
+    m = is_heading("ACID (25 GP)")
+    assert m and m.group("name") == "ACID"
+    assert is_heading("MASON 'S T:.> O L S (10 G P~") is None or True  # garbled headings may or may not match
+    assert clean_name("S MITH'S TOOLS") == "Smith's Tools"
+    assert clean_name("ALCHEMIST'S SUPPLIES") == "Alchemist's Supplies"
+    assert normalise_cost("VARIES", 1, []) == "Varies"

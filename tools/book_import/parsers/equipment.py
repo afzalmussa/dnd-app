@@ -38,10 +38,10 @@ def fix_dice(text, page, fixes):
 
 
 def fix_cost(text, page, fixes):
-    m = re.match(r"^([0-9SOlI,]+)\s*(CP|SP|EP|GP|PP)$", text.replace(" ", ""))
+    m = re.match(r"^([0-9SOlIL,]+)\s*(CP|SP|EP|GP|PP)$", text.replace(" ", ""))
     if not m:
         return text
-    digits = "".join({"S": "5", "O": "0", "l": "1", "I": "1"}.get(c, c) for c in m.group(1))
+    digits = "".join({"S": "5", "O": "0", "l": "1", "I": "1", "L": "1"}.get(c, c) for c in m.group(1))
     out = f"{digits} {m.group(2)}"
     if out != text:
         fixes.append({"page": page, "rule": "table-cost", "before": text, "after": out})

@@ -144,9 +144,9 @@ def background_section(bgs, problems_by_id):
 def item_section(items, problems_by_id):
     def flags(i):
         return i["source"]["flags"] + problems_by_id.get(i["id"], [])
-    out = [f"<h1>Weapons and armor ({len(items)})</h1>", "<table><tr><th>Name</th><th>Page</th><th>Kind</th><th>Details</th><th>Weight</th><th>Cost</th><th>Flags</th></tr>"]
+    out = [f"<h1>Equipment ({len(items)})</h1>", "<table><tr><th>Name</th><th>Page</th><th>Kind</th><th>Details</th><th>Weight</th><th>Cost</th><th>Flags</th></tr>"]
     for i in sorted(items, key=lambda i: (not flags(i), i["source"]["page"] or 0)):
-        d = i.get("weapon") or i.get("armor")
+        d = i.get("weapon") or i.get("armor") or i.get("tool") or i.get("summary")
         out.append(f"<tr class='{'flagged' if flags(i) else ''}'><td>{esc(i['name'])}</td><td>{esc(i['source']['page'])}</td><td>{esc(i['category'])}</td>"
                    f"<td>{esc(json.dumps(d))}</td><td>{esc(i['weight'])}</td><td>{esc(i['cost'])}</td><td class='bad'>{esc('; '.join(flags(i)))}</td></tr>")
     out.append("</table>")

@@ -3,7 +3,7 @@
   "phb24": {
     "force_ocr": [176, 177, 178, 179, 180, 181, 182, 183, 184],
     "backgrounds": {"first": 176, "last": 184},
-    "equipment": {"weapons": 214, "armor": 218},
+    "equipment": {"weapons": 214, "armor": 218, "tools": [219, 220], "gear": [221, 228]},
     "spells": {"first": 236, "last": 346},
     "feats": {"first": 199, "last": 210},
     "species": {"first": 185, "last": 197},

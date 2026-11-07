@@ -15,6 +15,7 @@ import pymupdf
 import survey
 from parsers.classes import parse_class
 from parsers.backgrounds import parse_backgrounds
+from parsers.gear import parse_gear
 from parsers.equipment import parse_armor, parse_weapons
 from parsers.origins import parse_feats, parse_species
 from parsers.spells import parse_spells
@@ -95,12 +96,14 @@ def main():
         items = []
         w, w_fixes, w_err = parse_weapons(doc, ROOT / "ocr-cache", args.book, book["ruleset"], sections["equipment"]["weapons"], damage_types)
         a, a_fixes, a_err = parse_armor(doc, ROOT / "ocr-cache", args.book, book["ruleset"], sections["equipment"]["armor"])
-        items, fixes = w + a, fixes + w_fixes + a_fixes
+        tools, t_fixes = parse_gear(ROOT / "ocr-cache", args.book, book["ruleset"], "tool", *sections["equipment"]["tools"])
+        gear, g_fixes = parse_gear(ROOT / "ocr-cache", args.book, book["ruleset"], "gear", *sections["equipment"]["gear"])
+        items, fixes = w + a + tools + gear, fixes + w_fixes + a_fixes + t_fixes + g_fixes
         ip = {i["id"]: validate_item(i) for i in items}
         extras.append("".join(f"<p class='bad'>{e}</p>" for e in w_err + a_err) + item_section(items, ip))
         (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
         (ROOT / "data-pack" / args.book / "items.json").write_text(json.dumps(items, indent=1, ensure_ascii=False), encoding="utf-8")
-        print(f"Weapons and armor: {len(items)} parsed, {sum(1 for i in items if i['source']['flags'] or ip[i['id']])} flagged")
+        print(f"Equipment (weapons, armor, tools, gear): {len(items)} parsed, {sum(1 for i in items if i['source']['flags'] or ip[i['id']])} flagged")
 
     if classes and kind in ("", "classes", "subclasses"):
         subs, sub_problems, top = [], {}, []
