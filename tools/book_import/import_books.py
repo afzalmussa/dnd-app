@@ -13,6 +13,7 @@ from pathlib import Path
 import pymupdf
 
 import survey
+from text_clean import clean_entries
 from parsers.classes import letters, parse_class, slug
 from parsers.backgrounds import parse_backgrounds, parse_text_backgrounds
 from parsers.gear import parse_gear, parse_gear_table
@@ -54,6 +55,7 @@ def main():
         s = sections["classes"][name]
         entry, class_fixes = parse_class(doc, ROOT / "ocr-cache", args.book, book["ruleset"], name,
                                          s["first"], s["last"], s["table"], known_skills)
+        clean_entries([entry], fixes)
         classes.append(entry)
         fixes += class_fixes
 
@@ -61,12 +63,14 @@ def main():
     if kind in ("", "spells") and "spells" in sections:
         sp = sections["spells"]
         spells, spell_fixes = parse_spells(doc, ROOT / "ocr-cache", args.book, book["ruleset"], sp["first"], sp["last"], sp.get("style", "2024"))
+        clean_entries(spells, fixes)
         fixes += spell_fixes
         spell_problems = {s["id"]: validate_spell(s) for s in spells}
 
     feats, species, extras, extra_problems = [], [], [], {}
     if kind in ("", "feats") and "feats" in sections:
         feats, f_fixes = parse_feats(ROOT / "ocr-cache", args.book, book["ruleset"], sections["feats"]["first"], sections["feats"]["last"])
+        clean_entries(feats, fixes)
         fixes += f_fixes
         fp = {f["id"]: validate_feat(f) for f in feats}
         extras.append(feat_section(feats, fp))
@@ -75,6 +79,7 @@ def main():
         print(f"Feats: {len(feats)} parsed, {sum(1 for f in feats if f['source']['flags'] or fp[f['id']])} flagged")
     if kind in ("", "species") and "species" in sections:
         species, s_fixes, s_top = parse_species(ROOT / "ocr-cache", args.book, book["ruleset"], sections["species"]["first"], sections["species"]["last"])
+        clean_entries(species, fixes)
         fixes += s_fixes
         sp_p = {s["id"]: validate_species(s) for s in species}
         extras.append(("".join(f"<p class='bad'>{p}</p>" for p in s_top)) + species_section(species, sp_p))
@@ -87,6 +92,7 @@ def main():
         feat_file = ROOT / "data-pack" / args.book / "feats.json"
         feat_names = [f["name"] for f in json.loads(feat_file.read_text(encoding="utf-8"))] if feat_file.exists() else []
         tbg, tb_fixes = parse_text_backgrounds(ROOT / "ocr-cache", args.book, book["ruleset"], tb["first"], tb["last"], tb["names"], feat_names)
+        clean_entries(tbg, fixes)
         fixes += tb_fixes
         extras.append(background_section(tbg, {}))
         (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
@@ -96,6 +102,7 @@ def main():
         feat_pairs = [(f["id"], f["name"]) for f in feats] or [
             (f["id"], f["name"]) for f in json.loads((ROOT / "data-pack" / args.book / "feats.json").read_text(encoding="utf-8"))]
         bgs, b_fixes = parse_backgrounds(ROOT / "ocr-cache", args.book, book["ruleset"], sections["backgrounds"]["first"], sections["backgrounds"]["last"], feat_pairs, doc)
+        clean_entries(bgs, fixes)
         fixes += b_fixes
         bp = {b["id"]: validate_background(b) for b in bgs}
         extras.append(background_section(bgs, bp))
@@ -138,6 +145,7 @@ def main():
             if g["cost"] and row["cost"] and g["cost"] != row["cost"]:
                 g["source"]["flags"].append(f"cost is {g['cost']} in the entry but {row['cost']} in the table; check the page")
         items, fixes = w + a + tools + gear, fixes + w_fixes + a_fixes + t_fixes + g_fixes + table_fixes
+        clean_entries(items, fixes)
         ip = {i["id"]: validate_item(i) for i in items}
         extras.append("".join(f"<p class='bad'>{e}</p>" for e in w_err + a_err) + item_section(items, ip))
         (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
@@ -153,6 +161,7 @@ def main():
         subs, sub_problems, top = [], {}, []
         for s_ in sections.get("legacy_subclasses", []):
             found, sub_fixes, errs = parse_subclasses_2014(ROOT / "ocr-cache", args.book, book["ruleset"], s_["class"].title(), s_["article"], s_["first"], s_["last"], s_.get("names"))
+            clean_entries(found, fixes)
             subs += found
             fixes += sub_fixes
             top += errs
@@ -162,6 +171,7 @@ def main():
         mk = sections.get("legacy_subclass_markers")
         if mk:
             found, mk_fixes = parse_subclasses_by_markers(ROOT / "ocr-cache", args.book, book["ruleset"], mk["first"], mk["last"], mk.get("skip_classes", []), mk.get("stop_at", []))
+            clean_entries(found, fixes)
             subs += found
             fixes += mk_fixes
             for sub in found:
@@ -173,6 +183,7 @@ def main():
         print(f"Subclasses: {len(subs)} parsed, {sum(1 for x in subs if x['source']['flags'] or sub_problems[x['id']] or any(f['source']['flags'] for f in x['features']))} with flags")
     if kind in ("", "feats") and "legacy_feats" in sections:
         lf, lf_fixes = parse_legacy_feats(ROOT / "ocr-cache", args.book, book["ruleset"], sections["legacy_feats"]["first"], sections["legacy_feats"]["last"], sections["legacy_feats"].get("start_marker"))
+        clean_entries(lf, fixes)
         fixes += lf_fixes
         # 2024 PHB: "the versions of things in this book replace versions from older books".
         # A legacy feat with the same name as a 2024 feat is marked as replaced by it.
@@ -194,6 +205,7 @@ def main():
         for cls, name in zip(classes, wanted):
             s_ = sections["classes"][name]
             found, sub_fixes, errs = parse_subclasses(ROOT / "ocr-cache", args.book, book["ruleset"], cls["name"], s_["first"], s_["last"])
+            clean_entries(found, fixes)
             subs += found
             fixes += sub_fixes
             top += errs
@@ -202,6 +214,7 @@ def main():
         mk = sections.get("legacy_subclass_markers")
         if mk:
             found, mk_fixes = parse_subclasses_by_markers(ROOT / "ocr-cache", args.book, book["ruleset"], mk["first"], mk["last"], mk.get("skip_classes", []))
+            clean_entries(found, fixes)
             subs += found
             fixes += mk_fixes
             for sub in found:
