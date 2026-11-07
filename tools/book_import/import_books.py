@@ -17,7 +17,7 @@ from parsers.classes import letters, parse_class, slug
 from parsers.backgrounds import parse_backgrounds
 from parsers.gear import parse_gear, parse_gear_table
 from parsers.equipment import parse_armor, parse_weapons
-from parsers.legacy import parse_legacy_feats, parse_subclasses_2014
+from parsers.legacy import parse_legacy_feats, parse_subclasses_2014, parse_subclasses_by_markers
 from parsers.origins import parse_feats, parse_species
 from parsers.spells import parse_spells
 from parsers.subclasses import parse_subclasses
@@ -139,13 +139,21 @@ def main():
     phb_file = ROOT / "data-pack" / "phb24" / "classes.json"
     if phb_file.exists():
         phb_classes = {c["id"]: c for c in json.loads(phb_file.read_text(encoding="utf-8"))}
-    if kind in ("", "subclasses") and "legacy_subclasses" in sections:
+    if kind in ("", "subclasses") and ("legacy_subclasses" in sections or "legacy_subclass_markers" in sections):
         subs, sub_problems, top = [], {}, []
-        for s_ in sections["legacy_subclasses"]:
+        for s_ in sections.get("legacy_subclasses", []):
             found, sub_fixes, errs = parse_subclasses_2014(ROOT / "ocr-cache", args.book, book["ruleset"], s_["class"].title(), s_["article"], s_["first"], s_["last"], s_.get("names"))
             subs += found
             fixes += sub_fixes
             top += errs
+            for sub in found:
+                cls = phb_classes.get(sub["classId"])
+                sub_problems[sub["id"]] = validate_subclass(sub, cls) if cls else ["PHB class not imported yet; levels not checked"]
+        mk = sections.get("legacy_subclass_markers")
+        if mk:
+            found, mk_fixes = parse_subclasses_by_markers(ROOT / "ocr-cache", args.book, book["ruleset"], mk["first"], mk["last"], mk.get("skip_classes", []))
+            subs += found
+            fixes += mk_fixes
             for sub in found:
                 cls = phb_classes.get(sub["classId"])
                 sub_problems[sub["id"]] = validate_subclass(sub, cls) if cls else ["PHB class not imported yet; levels not checked"]
@@ -181,6 +189,14 @@ def main():
             top += errs
             for sub in found:
                 sub_problems[sub["id"]] = validate_subclass(sub, cls)
+        mk = sections.get("legacy_subclass_markers")
+        if mk:
+            found, mk_fixes = parse_subclasses_by_markers(ROOT / "ocr-cache", args.book, book["ruleset"], mk["first"], mk["last"], mk.get("skip_classes", []))
+            subs += found
+            fixes += mk_fixes
+            for sub in found:
+                cls = phb_classes.get(sub["classId"])
+                sub_problems[sub["id"]] = validate_subclass(sub, cls) if cls else ["PHB class not imported yet; levels not checked"]
         extras.append("".join(f"<p class='bad'>{e}</p>" for e in top) + subclass_section(subs, sub_problems))
         (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
         (ROOT / "data-pack" / args.book / "subclasses.json").write_text(json.dumps(subs, indent=1, ensure_ascii=False), encoding="utf-8")

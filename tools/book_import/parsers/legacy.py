@@ -11,7 +11,7 @@ from parsers.origins import load_lines, name_is_broken, tidy
 from parsers.subclasses import caps_share
 
 TABLE_ROW = re.compile(r"^(\d{1,2})\s?(?:st|nd|rd|th)\s+(.+)$")
-LEVEL_MARKER = re.compile(r"^(\d{1,2})\s?(?:st|nd|rd|th)-level\b.*feature", re.IGNORECASE)
+LEVEL_MARKER = re.compile(r"^(\d{1,2})\s?(?:st|nd|rd|th)-level\s+(.+?)\s+feature", re.IGNORECASE)
 SUBCLASS_LEVEL = 3  # table rule: 2014 subclasses are chosen at level 3, earlier features arrive then
 
 
@@ -74,7 +74,7 @@ def parse_subclasses_2014(cache_dir, book, ruleset, class_name, article, first, 
                 m = TABLE_ROW.match(block[j])
                 if m:
                     rows.append([int(m.group(1)), m.group(2)])
-                elif rows and caps_share(block[j]) < 0.5 and len(block[j]) < 70:
+                elif rows and rows[-1][1].rstrip().endswith(",") and caps_share(block[j]) < 0.5 and len(block[j]) < 70:
                     rows[-1][1] += " " + block[j]  # a table row that wrapped onto a second line
                 else:
                     break
@@ -84,7 +84,7 @@ def parse_subclasses_2014(cache_dir, book, ruleset, class_name, article, first, 
                     table.append((level_, re.sub(r"\s*\(.*?\)\s*$", "", part).strip(), part.strip()))
         marker_texts = {}
         if not table:
-            markers = [i for i, l in enumerate(block) if LEVEL_MARKER.match(l) and i > 0]
+            markers = [i for i, l in enumerate(block) if LEVEL_MARKER.match(l) and i > 0 and similar(LEVEL_MARKER.match(l).group(2), name) >= 0.8]
             for n_, i in enumerate(markers):
                 label = block[i - 1].title().replace("'S", "'s")
                 stop = (markers[n_ + 1] - 1) if n_ + 1 < len(markers) else len(block)
@@ -163,3 +163,52 @@ def parse_legacy_feats(cache_dir, book, ruleset, first, last):
             "repeatable": False, "summary": (re.match(r"(.+?[.!?])(\s|$)", text) or [None, text[:200]])[1][:240], "text": text,
         })
     return feats, fixes
+
+
+# ---- Tasha's layout: each feature is a heading followed by "3rd-level Way of Mercy feature" --------------
+
+CLASS_WORDS = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"]
+MARKER_NAME = re.compile(r"^(\d{1,2})\s?(?:st|nd|rd|th)-level\s+(.+?)\s+feature", re.IGNORECASE)
+
+
+def parse_subclasses_by_markers(cache_dir, book, ruleset, first, last, skip_classes=()):
+    """Subclasses named by their feature marker lines. The class comes from the nearest class heading above."""
+    fixes, found = [], {}
+    lines, pages, ocr_pages = load_lines(cache_dir, book, first, last, fixes)
+    current_class = None
+    markers = []
+    for i, line in enumerate(lines):
+        flat = line.strip().lower()
+        if flat in CLASS_WORDS and line.strip().isupper():
+            current_class = flat
+        m = MARKER_NAME.match(line)
+        if m and i > 0 and m.group(2).lower() not in CLASS_WORDS and not m.group(2).lower().startswith(("optional", "class")):
+            markers.append((i, int(m.group(1)), m.group(2).strip(), current_class))
+    for n, (i, printed, sub_name, cls) in enumerate(markers):
+        if cls is None or cls in skip_classes:
+            continue
+        heading = lines[i - 1]
+        stop = (markers[n + 1][0] - 1) if n + 1 < len(markers) else len(lines)
+        text = tidy(lines[i + 1:stop])
+        fname = heading.title().replace("'S", "'s")
+        fflags = []
+        if caps_share(heading) < 0.8:
+            fflags.append(f"heading line '{heading}' is not capitals; the feature name may be wrong")
+        if name_is_broken(fname, 0.1):
+            fflags.append(f"name '{fname}' contains non-words; check against the page")
+        level = max(printed, SUBCLASS_LEVEL)
+        if level != printed:
+            fflags.append(f"printed at level {printed}; granted at level {level} by the table rule")
+        sub = found.setdefault(sub_name, {"class": cls, "page": pages[i], "features": []})
+        sub["features"].append({
+            "id": f"feature.{slug(sub_name)}.{slug(fname)}.{book}", "name": fname, "level": level, "printedLevel": printed,
+            "summary": (re.match(r"(.+?[.!?])(\s|$)", text) or [None, text[:200]])[1][:240], "text": text,
+            "source": {"book": book, "ruleset": ruleset, "page": pages[i], "ocrUsed": pages[i] in ocr_pages, "flags": fflags}})
+    out = []
+    for sub_name, v in found.items():
+        name = re.sub(r"\s+", " ", sub_name)
+        out.append({"id": f"subclass.{slug(name)}.{book}", "kind": "subclass", "name": name, "domainSpells": [],
+                    "classId": f"class.{v['class']}.phb24", "summary": "", "text": "", "features": v["features"],
+                    "source": {"book": book, "ruleset": ruleset, "page": v["page"], "ocrUsed": v["page"] in ocr_pages,
+                               "flags": [] if v["features"] else ["no features found"]}})
+    return out, fixes

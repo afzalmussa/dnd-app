@@ -130,6 +130,60 @@
         "names": [
           "War Magic"
         ]
+      },
+      {
+        "class": "bard",
+        "article": "a bard",
+        "first": 15,
+        "last": 18
+      },
+      {
+        "class": "druid",
+        "article": "a druid",
+        "first": 23,
+        "last": 25
+      },
+      {
+        "class": "fighter",
+        "article": "a fighter",
+        "first": 29,
+        "last": 33
+      },
+      {
+        "class": "monk",
+        "article": "a monk",
+        "first": 34,
+        "last": 37
+      },
+      {
+        "class": "paladin",
+        "article": "a paladin",
+        "first": 38,
+        "last": 41
+      },
+      {
+        "class": "ranger",
+        "article": "a ranger",
+        "first": 42,
+        "last": 45
+      },
+      {
+        "class": "rogue",
+        "article": "a rogue",
+        "first": 46,
+        "last": 49
+      },
+      {
+        "class": "sorcerer",
+        "article": "a sorcerer",
+        "first": 51,
+        "last": 54
+      },
+      {
+        "class": "warlock",
+        "article": "a warlock",
+        "first": 55,
+        "last": 58
       }
     ]
   },
@@ -143,7 +197,7 @@
         "class": "cleric",
         "article": "a cleric",
         "first": 32,
-        "last": 35,
+        "last": 36,
         "names": [
           "Order Domain",
           "Peace Domain",
@@ -160,6 +214,14 @@
           "Order of Scribes"
         ]
       }
-    ]
+    ],
+    "legacy_subclass_markers": {
+      "first": 25,
+      "last": 79,
+      "skip_classes": [
+        "cleric",
+        "wizard"
+      ]
+    }
   }
 }
