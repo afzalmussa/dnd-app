@@ -14,7 +14,7 @@ import pymupdf
 
 import survey
 from parsers.classes import letters, parse_class, slug
-from parsers.backgrounds import parse_backgrounds
+from parsers.backgrounds import parse_backgrounds, parse_text_backgrounds
 from parsers.gear import parse_gear, parse_gear_table
 from parsers.equipment import parse_armor, parse_weapons
 from parsers.legacy import parse_legacy_feats, parse_subclasses_2014, parse_subclasses_by_markers
@@ -82,6 +82,16 @@ def main():
         (out_dir / "species.json").write_text(json.dumps(species, indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"Species: {len(species)} parsed, {sum(1 for s in species if s['source']['flags'] or sp_p[s['id']])} flagged")
 
+    if kind in ("", "backgrounds") and "text_backgrounds" in sections:
+        tb = sections["text_backgrounds"]
+        feat_file = ROOT / "data-pack" / args.book / "feats.json"
+        feat_names = [f["name"] for f in json.loads(feat_file.read_text(encoding="utf-8"))] if feat_file.exists() else []
+        tbg, tb_fixes = parse_text_backgrounds(ROOT / "ocr-cache", args.book, book["ruleset"], tb["first"], tb["last"], tb["names"], feat_names)
+        fixes += tb_fixes
+        extras.append(background_section(tbg, {}))
+        (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
+        (ROOT / "data-pack" / args.book / "backgrounds.json").write_text(json.dumps(tbg, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"Backgrounds: {len(tbg)} parsed")
     if kind in ("", "backgrounds") and "backgrounds" in sections:
         feat_pairs = [(f["id"], f["name"]) for f in feats] or [
             (f["id"], f["name"]) for f in json.loads((ROOT / "data-pack" / args.book / "feats.json").read_text(encoding="utf-8"))]
@@ -151,7 +161,7 @@ def main():
                 sub_problems[sub["id"]] = validate_subclass(sub, cls) if cls else ["PHB class not imported yet; levels not checked"]
         mk = sections.get("legacy_subclass_markers")
         if mk:
-            found, mk_fixes = parse_subclasses_by_markers(ROOT / "ocr-cache", args.book, book["ruleset"], mk["first"], mk["last"], mk.get("skip_classes", []))
+            found, mk_fixes = parse_subclasses_by_markers(ROOT / "ocr-cache", args.book, book["ruleset"], mk["first"], mk["last"], mk.get("skip_classes", []), mk.get("stop_at", []))
             subs += found
             fixes += mk_fixes
             for sub in found:
@@ -162,7 +172,7 @@ def main():
         (ROOT / "data-pack" / args.book / "subclasses.json").write_text(json.dumps(subs, indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"Subclasses: {len(subs)} parsed, {sum(1 for x in subs if x['source']['flags'] or sub_problems[x['id']] or any(f['source']['flags'] for f in x['features']))} with flags")
     if kind in ("", "feats") and "legacy_feats" in sections:
-        lf, lf_fixes = parse_legacy_feats(ROOT / "ocr-cache", args.book, book["ruleset"], sections["legacy_feats"]["first"], sections["legacy_feats"]["last"])
+        lf, lf_fixes = parse_legacy_feats(ROOT / "ocr-cache", args.book, book["ruleset"], sections["legacy_feats"]["first"], sections["legacy_feats"]["last"], sections["legacy_feats"].get("start_marker"))
         fixes += lf_fixes
         # 2024 PHB: "the versions of things in this book replace versions from older books".
         # A legacy feat with the same name as a 2024 feat is marked as replaced by it.

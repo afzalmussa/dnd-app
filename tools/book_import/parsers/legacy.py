@@ -139,11 +139,12 @@ def parse_subclasses_2014(cache_dir, book, ruleset, class_name, article, first, 
     return out, fixes, []
 
 
-def parse_legacy_feats(cache_dir, book, ruleset, first, last):
+def parse_legacy_feats(cache_dir, book, ruleset, first, last, start_marker=None):
     """Tasha's feats: a capitals name, an optional 'Prerequisite:' line, then the benefits."""
     fixes, feats = [], []
     lines, pages, ocr_pages = load_lines(cache_dir, book, first, last, fixes)
-    heads = [i for i, l in enumerate(lines) if len(l) >= 4 and caps_share(l) > 0.9 and l != "FEATS" and len(l) < 40]
+    begin = next((i for i, l in enumerate(lines) if start_marker and l.strip().upper() == start_marker), -1) + 1
+    heads = [i for i, l in enumerate(lines) if i >= begin and len(l) >= 4 and caps_share(l) > 0.9 and l != "FEATS" and len(l) < 40]
     # The same name twice in a row is a page break inside one feat.
     heads = [i for n, i in enumerate(heads) if n == 0 or letters(lines[i]) != letters(lines[heads[n - 1]])]
     for n, i in enumerate(heads):
@@ -155,11 +156,14 @@ def parse_legacy_feats(cache_dir, book, ruleset, first, last):
         if body and body[0].startswith("Prerequisite"):
             prereq = re.sub(r"^Prerequisite:?\s*", "", body[0])
             body = body[1:]
+            while prereq.count("(") > prereq.count(")") and body:  # the prerequisite wraps onto a second line
+                prereq += " " + body[0]
+                body = body[1:]
         text = tidy(body)
         feats.append({
             "id": f"feat.{slug(name)}.{book}", "kind": "feat", "name": name,
             "source": {"book": book, "ruleset": ruleset, "page": pages[i], "ocrUsed": pages[i] in ocr_pages, "flags": flags},
-            "category": "legacy", "prerequisite": {"printed": prereq, "level": None, "abilities": {}} if prereq else None,
+            "category": "legacy", "prerequisite": {"printed": prereq, "level": int(re.match(r"(\d+)(?:st|nd|rd|th) Level", prereq).group(1)) if prereq and re.match(r"(\d+)(?:st|nd|rd|th) Level", prereq) else None, "abilities": {}} if prereq else None,
             "repeatable": False, "summary": (re.match(r"(.+?[.!?])(\s|$)", text) or [None, text[:200]])[1][:240], "text": text,
         })
     return feats, fixes
@@ -168,10 +172,29 @@ def parse_legacy_feats(cache_dir, book, ruleset, first, last):
 # ---- Tasha's layout: each feature is a heading followed by "3rd-level Way of Mercy feature" --------------
 
 CLASS_WORDS = ["barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"]
+LOOSE_MARKER = re.compile(r"^(\S{1,6})-level\s+(.+?)\s+feature\s*$", re.IGNORECASE)
+
+
+def loose_marker(line):
+    """Returns (level, subclass name) for '3rd-Level Path of the Giant Feature', reading a scanned ordinal."""
+    m = LOOSE_MARKER.match(line)
+    if not m:
+        return None
+    token = m.group(1).lower()
+    if token.endswith("rd"):
+        level = 3
+    elif token.endswith("nd"):
+        level = 2
+    else:
+        digits = "".join({"l": "1", "o": "0", "i": "1"}.get(c, c) for c in token if c.isdigit() or c in "loi")
+        level = int(digits) if digits.isdigit() else None
+    return (level, m.group(2).strip()) if level and 1 <= level <= 20 else None
+
+
 MARKER_NAME = re.compile(r"^(\d{1,2})\s?(?:st|nd|rd|th)-level\s+(.+?)\s+feature", re.IGNORECASE)
 
 
-def parse_subclasses_by_markers(cache_dir, book, ruleset, first, last, skip_classes=()):
+def parse_subclasses_by_markers(cache_dir, book, ruleset, first, last, skip_classes=(), stop_at=()):
     """Subclasses named by their feature marker lines. The class comes from the nearest class heading above."""
     fixes, found = [], {}
     lines, pages, ocr_pages = load_lines(cache_dir, book, first, last, fixes)
@@ -181,14 +204,21 @@ def parse_subclasses_by_markers(cache_dir, book, ruleset, first, last, skip_clas
         flat = line.strip().lower()
         if flat in CLASS_WORDS and line.strip().isupper():
             current_class = flat
-        m = MARKER_NAME.match(line)
-        if m and i > 0 and m.group(2).lower() not in CLASS_WORDS and not m.group(2).lower().startswith(("optional", "class")):
-            markers.append((i, int(m.group(1)), m.group(2).strip(), current_class))
+        head = re.match(r"^(\w+):", line.strip())
+        if head and head.group(1).lower() in CLASS_WORDS and line.strip().isupper():
+            current_class = head.group(1).lower()  # "BARBARIAN: PATH OF THE GIANT"
+        found_marker = loose_marker(line)
+        if found_marker and i > 0 and found_marker[1].lower() not in CLASS_WORDS and not found_marker[1].lower().startswith(("optional", "class")):
+            markers.append((i, found_marker[0], found_marker[1], current_class))
     for n, (i, printed, sub_name, cls) in enumerate(markers):
         if cls is None or cls in skip_classes:
             continue
         heading = lines[i - 1]
         stop = (markers[n + 1][0] - 1) if n + 1 < len(markers) else len(lines)
+        for j in range(i + 1, stop):  # a section heading such as "BACKGROUNDS" ends the last feature on the page
+            if lines[j].strip().upper() in stop_at:
+                stop = j
+                break
         text = tidy(lines[i + 1:stop])
         fname = heading.title().replace("'S", "'s")
         fflags = []

@@ -133,9 +133,9 @@ def background_section(bgs, problems_by_id):
         return b["source"]["flags"] + problems_by_id.get(b["id"], [])
     out = [f"<h1>Backgrounds ({len(bgs)})</h1>", "<table><tr><th>Name</th><th>Page</th><th>Abilities</th><th>Origin feat</th><th>Skills</th><th>Tool</th><th>Equipment</th><th>Flags</th></tr>"]
     for b in sorted(bgs, key=lambda b: (not flags(b), b["source"]["page"] or 0)):
-        feat = (b["originFeatId"] or "") + (f" ({b['originFeatChoice']})" if b["originFeatChoice"] else "")
+        feat = (b.get("originFeatId") or b.get("grantedFeat") or "") + (f" ({b.get('originFeatChoice')})" if b.get("originFeatChoice") else "")
         out.append(f"<tr class='{'flagged' if flags(b) else ''}'><td>{esc(b['name'])}</td><td>{esc(b['source']['page'])}</td><td>{esc(', '.join(b['abilityOptions']))}</td>"
-                   f"<td>{esc(feat)}</td><td>{esc(', '.join(b['skillProficiencies']))}</td><td>{esc(b['toolProficiency'])}</td><td>{esc(b['equipment'])}</td>"
+                   f"<td>{esc(feat)}</td><td>{esc(', '.join(b['skillProficiencies']))}</td><td>{esc(b.get('toolProficiency'))}</td><td>{esc(b['equipment'])}</td>"
                    f"<td class='bad'>{esc('; '.join(flags(b)))}</td></tr>")
     out.append("</table>")
     return "\n".join(out)

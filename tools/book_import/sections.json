@@ -233,5 +233,28 @@
       "last": 118,
       "style": "2014"
     }
+  },
+  "bgg": {
+    "legacy_subclass_markers": {
+      "first": 11,
+      "last": 12,
+      "skip_classes": [],
+      "stop_at": [
+        "BACKGROUNDS"
+      ]
+    },
+    "legacy_feats": {
+      "first": 17,
+      "last": 19,
+      "start_marker": "FEAT DESCRIPTIONS"
+    },
+    "text_backgrounds": {
+      "first": 12,
+      "last": 14,
+      "names": [
+        "GIANT FOUNDLING",
+        "RUNE CARVER"
+      ]
+    }
   }
 }

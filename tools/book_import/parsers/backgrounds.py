@@ -129,3 +129,50 @@ def parse_backgrounds(cache_dir, book, ruleset, first, last, feats, doc=None):
             e["source"]["flags"] = [f for f in e["source"]["flags"] if "garbled" not in f]
             e["source"]["flags"].append("name matched from the OCR copy of the printed list by alphabetical position; confirm")
     return entries, fixes
+
+
+def parse_text_backgrounds(cache_dir, book, ruleset, first, last, names, feat_names):
+    """Older-style backgrounds (Glory of the Giants): a capitals name, then 'Skill Proficiencies:' and the rest.
+
+    These have no ability scores. Under the 2024 rules the player adds +2/+1 or +1/+1/+1 and (if the background
+    gives no feat) picks an Origin feat. The feat these backgrounds name is kept as `grantedFeat`.
+    """
+    fixes, out = [], []
+    text = ""
+    for p in range(first, last + 1):
+        c = ocr.read_cache(cache_dir, book, p)
+        if c:
+            text += "\n" + fix_text(c["text"], p, fixes)
+    for n, name in enumerate(names):
+        start = text.find(name + "\n")
+        if start < 0:
+            continue
+        end = min([text.find(x + "\n", start + 10) for x in names if x != name and text.find(x + "\n", start + 10) > 0] + [len(text)])
+        block = text[start:end]
+        flags = ["2014-style background: no ability scores; the 2024 background rules apply (PHB p.37)"]
+
+        def field(label):
+            m = re.search(label + r":\s*(.+?)(?=\n\s*\n|\n[A-Z][A-Za-z ]+:|$)", block, re.S)
+            return re.sub(r"\s+", " ", m.group(1)).replace("- ", "") if m else None
+        skills = field("Skill Proficiencies")
+        equipment = field("Equipment")
+        if equipment:
+            equipment = re.sub(r"([a-z])[A-Z]{5,} ([a-z])", r"\1\2", equipment)  # "comBUILDING mon": a heading from the next column
+            equipment = re.sub(r"\b[A-Z][A-Z ]{8,}\b", "", equipment).replace("- ", "")
+            cut = re.match(r"^(.*?containing \d+ ?gp)", equipment)
+            equipment = cut.group(1) if cut else equipment
+            equipment = re.sub(r"\s+", " ", equipment).strip()
+            flags.append("equipment text may include words from the neighbouring column; check the page")
+        feat = re.search(r"FEATURE:\s*([A-Z ]+?)\s*\.?\s*\n", text[start:] if n + 1 == len(names) else text[start:end + 400])
+        feat_name = None
+        for fn in feat_names:
+            if fn and fn.lower() in re.sub(r"\s+", " ", block + (text[end:end + 600] if n + 1 < len(names) else "")).lower():
+                feat_name = fn
+        out.append({
+            "id": f"background.{slug(name)}.{book}", "kind": "background", "name": name.title(),
+            "source": {"book": book, "ruleset": ruleset, "page": first + n, "ocrUsed": True, "flags": flags},
+            "abilityOptions": [], "originFeatId": None, "grantedFeat": feat_name,
+            "skillProficiencies": [x for x in re.split(r",\s*", (skills or "").replace("|ntimidation", "Intimidation")) if x],
+            "toolProficiency": field("Tool Proficiencies"), "languages": field("Languages"), "equipment": equipment, "summary": "",
+        })
+    return out, fixes
