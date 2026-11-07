@@ -94,7 +94,7 @@ def validate_subclass(sub, cls):
     """Compare a subclass's feature levels with the levels its class table gives to subclass features."""
     problems = []
     expected = {cls["subclassLevel"]} | {r["level"] for r in cls["progression"]
-                                          if any(f.lower() == "subclass feature" for f in r["featuresPrinted"])}
+                                          if any(f.lower() == "subclass feature" or f.lower().endswith("specialist feature") for f in r["featuresPrinted"])}
     expected.discard(None)
     got = [f["level"] for f in sub["features"]]
     if any(g is None for g in got):
@@ -140,7 +140,7 @@ def validate_item(item):
 
 
 def fill_slots_by_agreement(classes, fixes):
-    """Fill spell-slot cells the scan lost when at least two other classes of the same caster type agree.
+    """Fill spell-slot cells the scan lost when at least two other classes of the same caster type agree (or the one other class, for the two half casters).
 
     Full casters (Cleric, Wizard, Sorcerer, Bard, Druid) print the same slot table. Only empty cells are
     filled, and each fill is logged and flagged on the class so it can be checked against the page.
@@ -151,7 +151,7 @@ def fill_slots_by_agreement(classes, fixes):
         if sc and sc["casterType"] and c["progression"] and c["progression"][0]["spellSlots"]:
             by_type.setdefault(sc["casterType"], []).append(c)
     for ctype, group in by_type.items():
-        if len(group) < 3:
+        if len(group) < 2:
             continue
         for c in group:
             for r in c["progression"]:
@@ -160,7 +160,7 @@ def fill_slots_by_agreement(classes, fixes):
                         continue
                     others = [o["progression"][r["level"] - 1]["spellSlots"][i] for o in group
                               if o is not c and i < len(o["progression"][r["level"] - 1]["spellSlots"])]
-                    agreed = [v for v in set(others) if v is not None and others.count(v) >= 2]
+                    agreed = [v for v in set(others) if v is not None and others.count(v) >= min(2, len(others))]
                     if len(agreed) == 1:
                         r["spellSlots"][i] = agreed[0]
                         fixes.append({"page": c["source"]["page"], "rule": "slots-from-agreement", "before": None, "after": agreed[0],

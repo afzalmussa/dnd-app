@@ -54,6 +54,8 @@ Needs Tesseract at `C:\Program Files\Tesseract-OCR`. Output: `data-pack/phb24/cl
 
 Re-run the full import: `python tools\book_import\import_books.py --book phb24` (and `xge`, `tce`, `bgg`), then `python tools\book_import\multiclass.py`.
 
+The Artificer (Tasha's, a legacy 2014 class) is imported by the `tce` run: its table, features, four Artificer Specialists and spell list. Its printed table loses a few "1" digits in the scan; those cells are filled from the Ranger and Paladin half-caster tables and listed in the report. Artificer spells it could not match (not yet imported, such as Longstrider and Expeditious Retreat) are flagged. Prepared spells follow the rule text (Intelligence modifier + half your levels, rounded up), not a table column. The Artificer Infusions list is not imported yet.
+
 ## Windows build (Milestone 5)
 
 ```

@@ -41,11 +41,19 @@ export function listItems(): ItemInfo[] {
   }))
 }
 
+// Classes from older books carry their own spell list (a list of spell ids); those spells gain that class.
+function extraClassLists(): Map<string, string[]> {
+  const extra = new Map<string, string[]>()
+  for (const c of mergedContent('class')) for (const id of c.spellList ?? []) extra.set(id, [...(extra.get(id) ?? []), c.name])
+  return extra
+}
+
 export function listSpells(): SpellInfo[] {
+  const extra = extraClassLists()
   return mergedContent('spell').map((raw) => ({
     id: raw.id, name: raw.name, level: raw.level, school: raw.school, castingTime: raw.castingTime, range: raw.range,
     components: raw.components, duration: raw.duration, concentration: !!raw.concentration, ritual: !!raw.ritual,
-    classLists: raw.classLists ?? [], text: raw.text ?? '', higherLevels: raw.higherLevels ?? null,
+    classLists: [...(raw.classLists ?? []), ...(extra.get(raw.id) ?? [])], text: raw.text ?? '', higherLevels: raw.higherLevels ?? null,
     book: raw.source.book, ruleset: raw.source.ruleset
   }))
 }

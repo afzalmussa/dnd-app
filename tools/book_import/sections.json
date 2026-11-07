@@ -232,6 +232,11 @@
       "first": 106,
       "last": 118,
       "style": "2014"
+    },
+    "artificer": {
+      "table": 11,
+      "first": 12,
+      "last": 21
     }
   },
   "bgg": {

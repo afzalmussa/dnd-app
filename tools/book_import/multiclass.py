@@ -110,6 +110,8 @@ def main():
     }
     path = ROOT / "data-pack" / BOOK / "multiclassing.json"
     path.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
+    from parsers.artificer import register_multiclass
+    register_multiclass(ROOT)  # Tasha's Artificer counts as a half caster too (if its import has been run)
     print(f"Wrote {path}; {len(problems)} problem(s)")
     for p in problems:
         print(" -", p)

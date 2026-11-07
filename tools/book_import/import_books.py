@@ -15,6 +15,7 @@ import pymupdf
 import survey
 from text_clean import clean_entries
 from parsers.classes import letters, parse_class, slug
+from parsers.artificer import parse_artificer, register_multiclass
 from parsers.backgrounds import parse_backgrounds, parse_text_backgrounds
 from parsers.gear import parse_gear, parse_gear_table
 from parsers.equipment import parse_armor, parse_weapons
@@ -176,6 +177,13 @@ def main():
     phb_file = ROOT / "data-pack" / "phb24" / "classes.json"
     if phb_file.exists():
         phb_classes = {c["id"]: c for c in json.loads(phb_file.read_text(encoding="utf-8"))}
+    art_cls, art_subs = None, []
+    if "artificer" in sections and kind in ("", "classes", "subclasses"):
+        a = sections["artificer"]
+        art_cls, art_subs, art_fixes = parse_artificer(ROOT / "ocr-cache", ROOT, args.book, book["ruleset"], a["table"], a["first"], a["last"], known_skills)
+        clean_entries([art_cls] + art_subs, fixes)
+        fixes += art_fixes
+        register_multiclass(ROOT)
     if kind in ("", "subclasses") and ("legacy_subclasses" in sections or "legacy_subclass_markers" in sections):
         subs, sub_problems, top = [], {}, []
         for s_ in sections.get("legacy_subclasses", []):
@@ -196,6 +204,9 @@ def main():
             for sub in found:
                 cls = phb_classes.get(sub["classId"])
                 sub_problems[sub["id"]] = validate_subclass(sub, cls) if cls else ["PHB class not imported yet; levels not checked"]
+        for sub in art_subs:
+            subs.append(sub)
+            sub_problems[sub["id"]] = validate_subclass(sub, art_cls)
         extras.append("".join(f"<p class='bad'>{e}</p>" for e in top) + subclass_section(subs, sub_problems))
         (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
         (ROOT / "data-pack" / args.book / "subclasses.json").write_text(json.dumps(subs, indent=1, ensure_ascii=False), encoding="utf-8")
@@ -244,6 +255,8 @@ def main():
         (ROOT / "data-pack" / args.book / "subclasses.json").write_text(json.dumps(subs, indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"Subclasses: {len(subs)} parsed, {sum(1 for x in subs if x['source']['flags'] or sub_problems[x['id']])} flagged")
 
+    if art_cls:
+        classes.append(art_cls)
     fill_slots_by_agreement(classes, fixes)
     problems = {e["id"]: validate_class(e) for e in classes}
     for eid, extra in compare_caster_slots(classes).items():
