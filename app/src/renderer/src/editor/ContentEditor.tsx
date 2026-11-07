@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { ContentKind } from '../../../shared/api'
+import { PLAYER_EDITION } from '../edition'
 
 type Entry = Record<string, any>
 
@@ -37,6 +38,9 @@ function blank(kind: ContentKind): Entry {
 function Field(props: { label: string; children: React.ReactNode; wide?: boolean }) {
   return <label className={props.wide ? 'wide' : ''}>{props.label}{props.children}</label>
 }
+
+// The monster list is the DM's; it is not in the players' build.
+const VISIBLE_KINDS = PLAYER_EDITION ? KINDS.filter((k) => k.kind !== 'monster') : KINDS
 
 export function ContentEditor({ onClose }: { onClose: () => void }) {
   const [kind, setKind] = useState<ContentKind>('spell')
@@ -116,7 +120,7 @@ export function ContentEditor({ onClose }: { onClose: () => void }) {
         <header>
           <h2>Content editor</h2>
           <select value={kind} onChange={(e) => setKind(e.target.value as ContentKind)}>
-            {KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label}</option>)}
+            {VISIBLE_KINDS.map((k) => <option key={k.kind} value={k.kind}>{k.label}</option>)}
           </select>
           <button className="small" onClick={onClose}>Close</button>
         </header>

@@ -19,6 +19,7 @@ import { getClassData, listFeats, listItems, listSpells, mergedContent } from '.
 import { deleteUserEntry, saveUserEntry, type ContentKind } from './userContent'
 import { getCampaign, listParty, setCampaign } from './party'
 import { getSaveFolder, loadSettings, saveSettings } from './settings'
+import { PLAYER_EDITION } from './edition'
 import * as wiki from './wikiFiles'
 import { publish } from './wikiPublish'
 
@@ -85,7 +86,7 @@ function registerHandlers(): void {
     }
     return saved
   })
-  ipcMain.handle('setRole', (_e, role: 'player' | 'dm') => saveSettings({ role }))
+  ipcMain.handle('setRole', (_e, role: 'player' | 'dm') => saveSettings({ role: PLAYER_EDITION ? 'player' : role }))
   ipcMain.handle('getCampaign', () => getCampaign())
   ipcMain.handle('setCampaign', (_e, campaign: { gameMinutes: number }) => setCampaign(campaign))
   ipcMain.handle('listParty', () => listParty())

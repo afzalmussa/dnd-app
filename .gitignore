@@ -16,3 +16,4 @@ __pycache__/
 .pytest_cache/
 *.log
 survey-*.log
+app/release-player/

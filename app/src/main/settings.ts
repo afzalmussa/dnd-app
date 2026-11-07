@@ -3,6 +3,7 @@
 // save folder from the app; for now the default is used unless the file says otherwise.
 
 import { app } from 'electron'
+import { PLAYER_EDITION } from './edition'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -30,7 +31,8 @@ export function loadSettings(): Settings {
   const path = settingsPath()
   if (!existsSync(path)) return defaults()
   try {
-    return { ...defaults(), ...JSON.parse(readFileSync(path, 'utf8')) }
+    const saved = { ...defaults(), ...JSON.parse(readFileSync(path, 'utf8')) } as Settings
+    return PLAYER_EDITION ? { ...saved, role: 'player' } : saved
   } catch {
     // A damaged settings file should not stop the app from starting.
     return defaults()

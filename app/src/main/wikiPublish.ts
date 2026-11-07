@@ -8,6 +8,7 @@ import { dirname, resolve, sep } from 'node:path'
 import type { PublishSummary } from '../shared/api'
 import { buildPublished, extractShareBlocks, indexMarkdown, publishedPath } from '../shared/wiki/publish'
 import { allPagePaths, areaRoot, readPage } from './wikiFiles'
+import { PLAYER_EDITION } from './edition'
 import { loadSettings } from './settings'
 
 function writeInside(root: string, relative: string, content: string): void {
@@ -29,7 +30,7 @@ function walkMarkdown(dir: string, rel = ''): string[] {
 
 export function publish(scope: 'all' | 'page', pagePath?: string): PublishSummary {
   const settings = loadSettings()
-  if (settings.role !== 'dm') throw new Error('Only the DM can publish. Set this PC as the DM in Settings.')
+  if (PLAYER_EDITION || settings.role !== 'dm') throw new Error('Only the DM can publish. Set this PC as the DM in Settings.')
   const notes = areaRoot('notes')
   const party = areaRoot('party')
   const summary: PublishSummary = { pages: 0, shared: 0, secrets: {}, warnings: [] }

@@ -151,3 +151,14 @@ def item_section(items, problems_by_id):
                    f"<td>{esc(json.dumps(d))}</td><td>{esc(i['weight'])}</td><td>{esc(i['cost'])}</td><td class='bad'>{esc('; '.join(flags(i)))}</td></tr>")
     out.append("</table>")
     return "\n".join(out)
+
+
+def monster_section(monsters):
+    out = [f"<h1>Monsters ({len(monsters)})</h1>", "<table><tr><th>Name</th><th>Page</th><th>Type</th><th>CR</th><th>AC</th><th>HP</th><th>Flags</th></tr>"]
+    for m in sorted(monsters, key=lambda m: (not m["source"]["flags"], m["source"]["page"] or 0)):
+        hp = (m["hp"] or {}).get("average", "")
+        out.append(f"<tr class='{'flagged' if m['source']['flags'] else ''}'><td>{esc(m['name'])}</td><td>{esc(m['source']['page'])}</td>"
+                   f"<td>{esc(m['size'])} {esc(m['creatureType'])}</td><td>{esc(m['cr'])}</td><td>{esc(m.get('ac'))}</td><td>{esc(hp)}</td>"
+                   f"<td class='bad'>{esc('; '.join(m['source']['flags']))}</td></tr>")
+    out.append("</table>")
+    return "\n".join(out)

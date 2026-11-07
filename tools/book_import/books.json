@@ -19,5 +19,9 @@
     "file": "5.5e Dungeon Master's Guide.pdf",
     "ruleset": "2014",
     "note": "The file is named 5.5e but its first printing line says December 2014: it is the 2014 DMG, so its content is legacy."
+  },
+  "mm": {
+    "file": "5.5e Monster Manual.pdf",
+    "ruleset": "2024"
   }
 }

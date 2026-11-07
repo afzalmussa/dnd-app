@@ -262,5 +262,9 @@
       "first": 150,
       "last": 232
     }
+  },
+  "mm": {
+    "skip_survey": true,
+    "monsters": true
   }
 }

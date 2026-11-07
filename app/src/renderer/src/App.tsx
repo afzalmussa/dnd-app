@@ -1,10 +1,14 @@
 // The app window: toolbar, the open character, autosave and the roll log.
 
 import { exhaustionRollPenalty } from '../../shared/rules/exhaustion'
-import { useEffect, useRef, useState, type MouseEvent } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createBlankCharacter } from '../../shared/character'
-import { EncountersTab } from './dm/EncountersTab'
-import { PartyView } from './dm/PartyView'
+import { PLAYER_EDITION } from './edition'
+
+// The DM's screens are loaded only in the DM build. In the players' build this is decided at build time,
+// so their code is not in the players' app at all.
+const EncountersTab = PLAYER_EDITION ? () => null : lazy(() => import('./dm/EncountersTab').then((m) => ({ default: m.EncountersTab })))
+const PartyView = PLAYER_EDITION ? (_: { onClose: () => void }) => null : lazy(() => import('./dm/PartyView').then((m) => ({ default: m.PartyView })))
 import { WikiView } from './wiki/WikiView'
 import { ContentEditor } from './editor/ContentEditor'
 import { SettingsDialog } from './settings/SettingsDialog'
@@ -193,7 +197,7 @@ export default function App() {
   return (
     <div className="app">
       {showEditor && <ContentEditor onClose={() => setShowEditor(false)} />}
-      {showParty && <PartyView onClose={() => setShowParty(false)} />}
+      {showParty && !PLAYER_EDITION && <Suspense fallback={null}><PartyView onClose={() => setShowParty(false)} /></Suspense>}
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} onChanged={refreshRole} />}
       <header className="toolbar">
         <strong className="app-name">DnD Character Manager</strong>
@@ -201,8 +205,8 @@ export default function App() {
         <button onClick={exportFile} disabled={!character}>Export</button>
         <button onClick={importFile}>Import</button>
         <button className={showWiki ? 'active' : ''} onClick={() => { setShowWiki(!showWiki); setShowEncounters(false) }} title="Your story notes and the party wiki">Wiki</button>
-        {role === 'dm' && <button className={showEncounters ? 'active' : ''} onClick={() => { setShowEncounters(!showEncounters); setShowWiki(false) }} title="The party's health and the enemies in the fight">Encounters</button>}
-        {role === 'dm' && <button onClick={() => setShowParty(true)} title="All party sheets at a glance (read-only)">DM view</button>}
+        {role === 'dm' && !PLAYER_EDITION && <button className={showEncounters ? 'active' : ''} onClick={() => { setShowEncounters(!showEncounters); setShowWiki(false) }} title="The party's health and the enemies in the fight">Encounters</button>}
+        {role === 'dm' && !PLAYER_EDITION && <button onClick={() => setShowParty(true)} title="All party sheets at a glance (read-only)">DM view</button>}
         <button onClick={() => setShowSettings(true)}>Settings</button>
         <button onClick={() => setShowEditor(true)} title="Correct imported entries or add your own spells, feats, items and more">Content editor</button>
         <button className={editing ? 'active' : ''} disabled={!character} onClick={() => setEditing(!editing)}>
@@ -233,7 +237,7 @@ export default function App() {
         </div>
       )}
 
-      {showEncounters && role === 'dm' ? <EncountersTab /> : showWiki ? <WikiView onClose={() => setShowWiki(false)} /> : (
+      {showEncounters && role === 'dm' && !PLAYER_EDITION ? <Suspense fallback={null}><EncountersTab /></Suspense> : showWiki ? <WikiView onClose={() => setShowWiki(false)} /> : (
       <div ref={workspace} className={`workspace dock-${dock}`}>
         <main className="main">
           {context ? (

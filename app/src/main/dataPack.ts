@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import type { FeatInfo, ItemInfo, SpellInfo } from '../shared/api'
 import { parsePounds } from '../shared/rules/carrying'
 import { mergeEntries } from '../shared/rules/contentMerge'
+import { PLAYER_EDITION } from './edition'
 import { loadUserEntries, PACK_FILE, type ContentKind } from './userContent'
 
 function dataPackFolder(): string | null {
@@ -84,6 +85,7 @@ export function getClassData(): { classes: unknown[]; subclasses: unknown[]; mul
 // Book entries with your corrections and homebrew merged in. Each entry gets `_origin`:
 // "book", "edited" (yours replaces a book entry with the same id) or "user" (homebrew).
 export function mergedContent(kind: ContentKind): any[] {
+  if (PLAYER_EDITION && kind === 'monster') return [] // the players' build never reads monsters
   const folder = dataPackFolder()
   const book: any[] = []
   if (folder) {

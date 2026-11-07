@@ -18,12 +18,13 @@ from parsers.classes import letters, parse_class, slug
 from parsers.backgrounds import parse_backgrounds, parse_text_backgrounds
 from parsers.gear import parse_gear, parse_gear_table
 from parsers.equipment import parse_armor, parse_weapons
+from parsers.monsters import parse_monsters, validate_monsters
 from parsers.magic_items import parse_magic_items
 from parsers.legacy import parse_legacy_feats, parse_subclasses_2014, parse_subclasses_by_markers
 from parsers.origins import parse_feats, parse_species
 from parsers.spells import parse_spells
 from parsers.subclasses import parse_subclasses
-from report import background_section, feat_section, item_section, species_section, subclass_section, write_report
+from report import monster_section, background_section, feat_section, item_section, species_section, subclass_section, write_report
 from validate import compare_caster_slots, fill_slots_by_agreement, validate_background, validate_class, validate_feat, validate_item, validate_species, validate_subclass, validate_spell
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -42,12 +43,13 @@ def main():
     book = books[args.book]
     sections = json.loads((HERE / "sections.json").read_text(encoding="utf-8")).get(args.book, {})
     kind, _, names = (args.only or "").partition(":")
-    if kind not in ("", "classes", "spells", "feats", "species", "subclasses", "backgrounds", "equipment", "magicitems"):
+    if kind not in ("", "classes", "spells", "feats", "species", "subclasses", "backgrounds", "equipment", "magicitems", "monsters"):
         sys.exit("Implemented so far: classes, subclasses, spells, feats, species, backgrounds, equipment.")
     wanted = [n for n in names.split(",") if n] if kind == "classes" else []
     wanted = wanted or (list(sections.get("classes", {})) if kind in ("", "classes") else [])
 
-    survey.survey(args.book, force_ocr=set(sections.get("force_ocr", [])))  # skips pages already cached
+    if not sections.get("skip_survey"):
+        survey.survey(args.book, force_ocr=set(sections.get("force_ocr", [])))  # skips pages already cached
     doc = pymupdf.open(ROOT / "PDFs" / book["file"])
     known_skills = [s["name"] for s in json.loads((ROOT / "app/src/shared/coreRules.json").read_text(encoding="utf-8"))["skills"]]
 
@@ -88,6 +90,13 @@ def main():
         (out_dir / "species.json").write_text(json.dumps(species, indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"Species: {len(species)} parsed, {sum(1 for s in species if s['source']['flags'] or sp_p[s['id']])} flagged")
 
+    if kind in ("", "monsters") and sections.get("monsters"):
+        monsters = validate_monsters(parse_monsters(ROOT / "PDFs" / book["file"], args.book, book["ruleset"]))
+        clean_entries(monsters, fixes)
+        extras.append(monster_section(monsters))
+        (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
+        (ROOT / "data-pack" / args.book / "monsters.json").write_text(json.dumps(monsters, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"Monsters: {len(monsters)} parsed, {sum(1 for x in monsters if x['source']['flags'])} flagged")
     if kind in ("", "magicitems") and "magic_items" in sections:
         mi = sections["magic_items"]
         magic, mi_fixes = parse_magic_items(ROOT / "ocr-cache", args.book, book["ruleset"], mi["first"], mi["last"])

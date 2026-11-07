@@ -1,0 +1,23 @@
+# The players' Windows build: the same app without anything the DM uses.
+# No monsters, no Dungeon Master's Guide items, and the DM tools are switched off in the code
+# (see src/renderer/src/edition.ts). Make it with: npm run dist:player
+appId: com.afzalmussa.dndcharactermanager.players
+productName: DnD Character Manager Players
+directories:
+  output: release-player
+files:
+  - out/**
+  - package.json
+extraResources:
+  - from: ../data-pack
+    to: data-pack
+    filter:
+      - "**/*.json"
+      - "!mm/**"
+      - "!dmg/**"
+win:
+  target:
+    - zip
+    - portable
+  signAndEditExecutable: false
+artifactName: ${productName}-${version}-win.${ext}

@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react'
 import type { AppSettings } from '../../../shared/api'
+import { PLAYER_EDITION } from '../edition'
 
 export function SettingsDialog({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
   const [settings, setSettings] = useState<AppSettings | null>(null)
@@ -35,13 +36,13 @@ export function SettingsDialog({ onClose, onChanged }: { onClose: () => void; on
         <header><h2>Settings</h2><button className="small" onClick={onClose}>Close</button></header>
         {!settings ? <p className="muted">Loading…</p> : (
           <section>
-            <div className="requirement">
+            {!PLAYER_EDITION && <div className="requirement">
               <h4>This PC is the</h4>
               <label><input type="radio" checked={settings.role === 'player'} onChange={() => role('player')} /> Player</label>{' '}
               <label><input type="radio" checked={settings.role === 'dm'} onChange={() => role('dm')} /> DM</label>
               <p className="muted small">As the DM you can publish notes to the players and move the campaign clock (open <strong>DM view</strong> in the toolbar, then use Advance or Reset next to the clock). Players read the clock automatically.</p>
-            </div>
-            {rows.map((r) => (
+            </div>}
+            {rows.filter((r) => !(PLAYER_EDITION && r.key === 'dmFolder')).map((r) => (
               <div className="requirement" key={r.key}>
                 <h4>{r.label}</h4>
                 <code>{settings[r.key] || '(not set)'}</code>{' '}
@@ -49,7 +50,7 @@ export function SettingsDialog({ onClose, onChanged }: { onClose: () => void; on
                 <p className="muted small">{r.help}</p>
               </div>
             ))}
-            {settings.role === 'dm' && (
+            {!PLAYER_EDITION && settings.role === 'dm' && (
               <div className="requirement">
                 <h4>Player folders (for secrets)</h4>
                 <p className="muted small">One Drive folder per player, shared with that player only. When you publish, a secret marked for that player goes into their folder. Type the name exactly as you write it in the secret ("Secret for…").</p>

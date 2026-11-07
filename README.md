@@ -91,4 +91,8 @@ Secrets are only as private as the Drive folder: share each player's folder with
 
 ## Encounters (DM)
 
-**Encounter** in the toolbar: search the Monster Manual (504 stat blocks, imported with `python tools\book_import\import_books.py --book mm`), read a stat block, add monsters (several of one kind are numbered), add your party from the DM folder, roll monster initiative, then step through turns and rounds. Track hit points (Dmg / Heal), conditions and the total XP. Click a monster's name in the tracker to see its stat block. The encounter is remembered on this PC. Difficulty ratings are not shown: the XP threshold tables live in the DMG and the data pack only has the 2014 one.
+**Encounters** in the toolbar (DM only): every party member with live health and one line of battle numbers (AC, initiative, passive Perception, speed, slots, conditions), refreshed from the DM folder every few seconds. **Add enemy** is a search box over the Monster Manual (504 stat blocks, imported with `python toolsook_import\import_books.py --book mm`); picking one fills in its numbers. Enemy abilities appear as chips: hover one to read what it does. There are no roll buttons, you roll your own dice. Enter initiative, press Next turn, use Dmg / Heal on enemies. Total XP is shown. The encounter is remembered on this PC. Difficulty ratings are not shown: the XP threshold tables live in the DMG and the data pack only has the 2014 one.
+
+## Players' edition
+
+`npm run dist:player` (in `app`) builds a version for your players with no bestiary, encounter screen, DM view or publishing, and without the Monster Manual and DMG data. The role is fixed to player. Output goes to `app/release-player`. The normal `npm run dist` build is the DM's.

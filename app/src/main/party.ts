@@ -5,12 +5,14 @@ import { join } from 'node:path'
 import type { Campaign } from '../shared/api'
 import { partyMember, unreadableMember, type PartyMember } from '../shared/rules/party'
 import { readCharacterFile } from './characterFiles'
+import { PLAYER_EDITION } from './edition'
 import { getSaveFolder, loadSettings } from './settings'
 
 export const CAMPAIGN_FILE = 'campaign.json'
 
 // Opens every character file in the DM folder for reading only. This function never writes there.
 export function listParty(): PartyMember[] {
+  if (PLAYER_EDITION) return [] // the DM view is not in the players' build
   const folder = loadSettings().dmFolder
   if (!existsSync(folder)) return []
   return readdirSync(folder)
