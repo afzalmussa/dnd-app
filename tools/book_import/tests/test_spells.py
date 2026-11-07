@@ -26,3 +26,11 @@ def test_feat_prerequisite_and_broken_names():
     p = parse_prerequisite("Prerequisite: Level 4+, Dexterity 13+")
     assert p["level"] == 4 and p["abilities"] == {"dex": 13}
     assert name_is_broken("A Lert") and not name_is_broken("Alert")
+
+
+def test_subclass_levels_checked_against_class_table():
+    from validate import validate_subclass
+    cls = {"name": "X", "subclassLevel": 3, "progression": [{"level": 6, "featuresPrinted": ["Subclass feature"]}]}
+    sub = {"features": [{"level": 3}, {"level": 10}]}
+    problems = validate_subclass(sub, cls)
+    assert any("level 6" in p for p in problems) and any("level 10" in p for p in problems)

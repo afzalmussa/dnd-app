@@ -84,3 +84,21 @@ def validate_species(s):
     if not s["traits"]:
         problems.append("no traits")
     return problems
+
+
+def validate_subclass(sub, cls):
+    """Compare a subclass's feature levels with the levels its class table gives to subclass features."""
+    problems = []
+    expected = {cls["subclassLevel"]} | {r["level"] for r in cls["progression"]
+                                          if any(f.lower() == "subclass feature" for f in r["featuresPrinted"])}
+    expected.discard(None)
+    got = [f["level"] for f in sub["features"]]
+    if any(g is None for g in got):
+        problems.append("a feature level could not be read")
+    if [g for g in got if g is not None] != sorted(g for g in got if g is not None):
+        problems.append(f"feature levels are not in order: {got}")
+    for lvl in sorted(expected - set(got)):
+        problems.append(f"no feature at level {lvl}, but the {cls['name']} table has a subclass feature there")
+    for lvl in sorted(set(g for g in got if g is not None) - expected):
+        problems.append(f"feature at level {lvl}, but the {cls['name']} table has no subclass feature there")
+    return problems

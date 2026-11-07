@@ -16,8 +16,9 @@ import survey
 from parsers.classes import parse_class
 from parsers.origins import parse_feats, parse_species
 from parsers.spells import parse_spells
-from report import feat_section, species_section, write_report
-from validate import compare_caster_slots, validate_class, validate_feat, validate_species, validate_spell
+from parsers.subclasses import parse_subclasses
+from report import feat_section, species_section, subclass_section, write_report
+from validate import compare_caster_slots, validate_class, validate_feat, validate_species, validate_subclass, validate_spell
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).parent
@@ -35,8 +36,8 @@ def main():
     book = books[args.book]
     sections = json.loads((HERE / "sections.json").read_text(encoding="utf-8")).get(args.book, {})
     kind, _, names = (args.only or "").partition(":")
-    if kind not in ("", "classes", "spells", "feats", "species"):
-        sys.exit("Implemented so far: classes, spells, feats, species.")
+    if kind not in ("", "classes", "spells", "feats", "species", "subclasses"):
+        sys.exit("Implemented so far: classes, subclasses, spells, feats, species.")
     wanted = [n for n in names.split(",") if n] if kind == "classes" else []
     wanted = wanted or (list(sections.get("classes", {})) if kind in ("", "classes") else [])
 
@@ -76,6 +77,21 @@ def main():
         (out_dir := ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
         (out_dir / "species.json").write_text(json.dumps(species, indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"Species: {len(species)} parsed, {sum(1 for s in species if s['source']['flags'] or sp_p[s['id']])} flagged")
+
+    if classes and kind in ("", "classes", "subclasses"):
+        subs, sub_problems, top = [], {}, []
+        for cls, name in zip(classes, wanted):
+            s_ = sections["classes"][name]
+            found, sub_fixes, errs = parse_subclasses(ROOT / "ocr-cache", args.book, book["ruleset"], cls["name"], s_["first"], s_["last"])
+            subs += found
+            fixes += sub_fixes
+            top += errs
+            for sub in found:
+                sub_problems[sub["id"]] = validate_subclass(sub, cls)
+        extras.append("".join(f"<p class='bad'>{e}</p>" for e in top) + subclass_section(subs, sub_problems))
+        (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
+        (ROOT / "data-pack" / args.book / "subclasses.json").write_text(json.dumps(subs, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"Subclasses: {len(subs)} parsed, {sum(1 for x in subs if x['source']['flags'] or sub_problems[x['id']])} flagged")
 
     problems = {e["id"]: validate_class(e) for e in classes}
     for eid, extra in compare_caster_slots(classes).items():

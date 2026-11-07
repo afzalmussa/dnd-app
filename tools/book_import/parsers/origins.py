@@ -13,10 +13,10 @@ FEAT_LINE = re.compile(r"^(Origin|General|Fighting Style|Epic Boon) Feat\s*(?:\(
 TRAIT_START = re.compile(r"^([A-Z][A-Za-z'’-]*(?: [A-Za-z'’-]+){0,4})\.\s+(\S.*)$")
 
 
-def name_is_broken(name):
+def name_is_broken(name, min_zipf=1.5):
     """True when a name has pieces that are not words, e.g. 'A Lert' (a split caused by the drop-cap)."""
     tokens = re.findall(r"[A-Za-z]+", name.replace("'", ""))
-    return any(len(t) == 1 or zipf_frequency(t.lower(), "en") < 1.5 for t in tokens)
+    return any(len(t) == 1 or zipf_frequency(t.lower(), "en") < min_zipf for t in tokens)
 
 
 def tidy(lines):

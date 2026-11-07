@@ -109,3 +109,20 @@ def species_section(species, problems_by_id):
         out += [f"<li><b>{esc(t['name'])}</b>: {esc(t['text'][:300])}</li>" for t in s["traits"]]
         out.append("</ul></section>")
     return "\n".join(out)
+
+
+def subclass_section(subs, problems_by_id):
+    def flags(x):
+        return x["source"]["flags"] + problems_by_id.get(x["id"], [])
+    out = [f"<h1>Subclasses ({len(subs)})</h1>"]
+    for x in sorted(subs, key=lambda x: (not flags(x), x["source"]["page"] or 0)):
+        out.append(f"<section class='{'flagged' if flags(x) else ''}'><h2>{esc(x['name'])} <small>{esc(x['classId'])} · PDF page {esc(x['source']['page'])}</small></h2>")
+        if flags(x):
+            out.append("<ul class='flags'>" + "".join(f"<li>{esc(f)}</li>" for f in flags(x)) + "</ul>")
+        out.append(f"<p><i>{esc(x['summary'])}</i></p>")
+        for f in x["features"]:
+            ff = f["source"]["flags"]
+            out.append(f"<details {'open' if ff else ''}><summary>Level {esc(f['level'])}: {esc(f['name'])}"
+                       + (f" <span class='bad'>{esc('; '.join(ff))}</span>" if ff else "") + f"</summary><p>{esc(f['text'])}</p></details>")
+        out.append("</section>")
+    return "\n".join(out)
