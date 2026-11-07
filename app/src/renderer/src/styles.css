@@ -323,3 +323,9 @@ button.link { background: none; border: none; color: inherit; text-decoration: u
 .roll-toast-total.min, .roll-toast-total.nat1 { color: #ff4d4d; }
 .roll-toast-total.nat20 { color: #ffd43b; font-size: calc(2.4rem + 1px); }
 .roll-toast-text { display: flex; flex-direction: column; }
+
+/* A normal result is plain light text. Red is only for a natural 1 or when every die rolled 1. */
+.roll-total, .roll-entries li .roll-total, .roll-toast-total { color: var(--ink); }
+.roll-total.max, .roll-entries li.max .roll-total, .roll-toast-total.max { color: #3fb950; }
+.roll-total.min, .roll-total.nat1, .roll-entries li.min .roll-total, .roll-entries li.nat1 .roll-total, .roll-toast-total.min, .roll-toast-total.nat1 { color: #ff4d4d; }
+.roll-total.nat20, .roll-entries li.nat20 .roll-total, .roll-toast-total.nat20 { color: #ffd43b; }
