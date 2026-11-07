@@ -2,19 +2,25 @@
    variables so the look can be changed in one place. */
 
 :root {
-  --page: #f4efe6;
-  --panel: #fffdf8;
-  --panel-alt: #f8f3ea;
-  --ink: #2a2420;
-  --muted: #7a6f66;
-  --line: #ddd2c2;
-  --accent: #8e1b1b;
-  --accent-soft: #f3dddd;
-  --good: #2f6b3a;
-  --good-soft: #dcefdc;
-  --danger: #a12626;
-  --gold: #b8860b;
+  /* Dark theme with a deep red accent, after the D&D ampersand-dragon logo. */
+  color-scheme: dark; /* makes scrollbars, dropdowns and checkboxes dark too */
+  --page: #110d0e;
+  --panel: #1c1617;
+  --panel-alt: #261d1e;
+  --field: #140f10;
+  --bar: #0a0708;
+  --ink: #ece3da;
+  --muted: #a39389;
+  --line: #3d2d2e;
+  --accent: #c1121f;        /* dragon red */
+  --accent-bright: #e5383b; /* red text on dark backgrounds */
+  --accent-soft: #3b1418;
+  --good: #6fbf73;
+  --good-soft: #1d3320;
+  --danger: #ff6b6b;
+  --gold: #d4a017;
   --radius: 6px;
+  --heading-font: 'Cinzel', Georgia, serif;
   font-family: 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
   color: var(--ink);
@@ -23,7 +29,8 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--page); }
-h1 { margin: 0; font-size: 1.6rem; }
+.main { background: radial-gradient(ellipse at top, #24100f 0%, var(--page) 55%); }
+h1 { margin: 0; font-size: 1.7rem; font-family: var(--heading-font); font-weight: 700; letter-spacing: 0.02em; }
 p { margin: 0.3rem 0; }
 
 button, .button {
@@ -35,9 +42,9 @@ button, .button {
   padding: 0.3rem 0.7rem;
   cursor: pointer;
 }
-button:hover:not(:disabled), .button:hover { border-color: var(--accent); }
+button:hover:not(:disabled), .button:hover { border-color: var(--accent-bright); }
 button:disabled { opacity: 0.5; cursor: default; }
-button.active { background: var(--accent); color: white; border-color: var(--accent); }
+button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 button.small, .button.small { padding: 0.15rem 0.5rem; font-size: 0.85rem; }
 button.danger { color: var(--danger); }
 button.good { color: var(--good); }
@@ -47,7 +54,7 @@ input, select, textarea {
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 0.2rem 0.35rem;
-  background: white;
+  background: var(--field);
   color: var(--ink);
 }
 .num-input { width: 4.5rem; }
@@ -70,16 +77,16 @@ label.checkbox { flex-direction: row; align-items: center; gap: 0.4rem; }
 .message { grid-row: 2; }
 .main { grid-row: 3; min-height: 0; }
 .roll-log { grid-row: 4; }
-.toolbar { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--ink); }
-.toolbar .app-name { color: white; margin-right: 1rem; }
-.toolbar .save-status { margin-left: auto; color: #d8cfc4; font-size: 0.85rem; }
+.toolbar { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--bar); border-bottom: 2px solid var(--accent); }
+.toolbar .app-name { color: var(--accent-bright); margin-right: 1rem; font-family: var(--heading-font); font-size: 1.1rem; }
+.toolbar .save-status { margin-left: auto; color: var(--muted); font-size: 0.85rem; }
 .message { display: flex; gap: 1rem; align-items: center; padding: 0.4rem 1rem; background: var(--accent-soft); }
 .main { overflow: auto; padding: 0.75rem 1rem; }
 
 /* Boxes */
 .box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 0.6rem 0.75rem; margin-bottom: 0.75rem; }
-.box-title { display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: var(--accent); margin-bottom: 0.4rem; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; }
-.box-label { font-weight: 600; color: var(--accent); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+.box-title { display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: var(--accent-bright); margin-bottom: 0.4rem; text-transform: uppercase; font-size: 0.82rem; letter-spacing: 0.06em; font-family: var(--heading-font); }
+.box-label { font-weight: 700; color: var(--accent-bright); text-transform: uppercase; font-size: 0.82rem; letter-spacing: 0.06em; margin-bottom: 0.3rem; font-family: var(--heading-font); }
 
 /* Top bar */
 .top-bar {
@@ -97,7 +104,7 @@ label.checkbox { flex-direction: row; align-items: center; gap: 0.4rem; }
 .portrait-empty { display: grid; place-items: center; color: var(--muted); font-size: 0.8rem; background: var(--panel-alt); }
 .portrait-actions { display: flex; gap: 0.25rem; margin-top: 0.25rem; }
 .identity { display: flex; flex-direction: column; gap: 0.3rem; }
-.identity .subtitle { font-weight: 600; color: var(--accent); }
+.identity .subtitle { font-weight: 600; color: var(--accent-bright); }
 .identity-row, .class-row { display: flex; gap: 0.3rem; flex-wrap: wrap; align-items: end; }
 .identity-row .text-input, .class-row .text-input { width: 10rem; }
 .name-input { font-size: 1.3rem; font-weight: 600; }
@@ -136,7 +143,7 @@ input.ability-score { width: 3.5rem; text-align: center; }
 .save-row { display: flex; align-items: center; justify-content: center; gap: 0.3rem; margin-top: 0.2rem; }
 .save-bonus { border: none; background: none; font-size: 0.82rem; padding: 0.1rem 0.3rem; }
 
-.prof-dot { width: 14px; height: 14px; padding: 0; border-radius: 50%; border: 2px solid var(--muted); background: white; flex-shrink: 0; }
+.prof-dot { width: 14px; height: 14px; padding: 0; border-radius: 50%; border: 2px solid var(--muted); background: var(--field); flex-shrink: 0; }
 .prof-dot.proficient { background: var(--accent); border-color: var(--accent); }
 .prof-dot.expertise { background: var(--accent); border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
 
@@ -153,7 +160,7 @@ input.ability-score { width: 3.5rem; text-align: center; }
 /* Centre tabs */
 .tabs { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; border-bottom: 2px solid var(--accent); }
 .tabs button { border-radius: var(--radius) var(--radius) 0 0; border-bottom: none; }
-.tabs button.active { background: var(--accent); color: white; }
+.tabs button.active { background: var(--accent); color: #fff; }
 
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; font-size: 0.75rem; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--line); padding: 0.25rem; }
@@ -190,8 +197,8 @@ td { padding: 0.25rem; border-bottom: 1px solid var(--panel-alt); vertical-align
 .passive { margin-bottom: 0.4rem; }
 
 .pips { display: inline-flex; gap: 3px; flex-wrap: wrap; }
-.pip { width: 16px; height: 16px; padding: 0; border-radius: 3px; border: 2px solid var(--accent); background: white; }
-.pip.used { background: var(--accent); }
+.pip { width: 16px; height: 16px; padding: 0; border-radius: 3px; border: 2px solid var(--accent-bright); background: var(--field); }
+.pip.used { background: var(--accent-bright); }
 .uses-number { display: inline-flex; gap: 0.4rem; align-items: center; }
 
 /* Roll log */
@@ -201,15 +208,19 @@ td { padding: 0.25rem; border-bottom: 1px solid var(--panel-alt); vertical-align
 .roll-controls button:last-child { margin-left: auto; }
 .roll-entries { list-style: none; margin: 0; padding: 0.2rem 1rem; overflow-y: auto; }
 .roll-entries li { display: flex; gap: 0.75rem; align-items: baseline; padding: 0.1rem 0; }
-.roll-total { font-weight: 700; font-size: 1.1rem; min-width: 2.5rem; color: var(--accent); }
+.roll-total { font-weight: 700; font-size: 1.1rem; min-width: 2.5rem; color: var(--accent-bright); }
 .roll-label { font-weight: 600; }
 .roll-time { margin-left: auto; }
 .roll-entries li.nat20 .roll-total { color: var(--good); }
 .roll-entries li.nat1 .roll-total { color: var(--danger); }
 
 /* Character picker */
-.picker-backdrop { position: fixed; inset: 0; background: rgba(42, 36, 32, 0.45); display: grid; place-items: center; }
+.picker-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); display: grid; place-items: center; }
 .picker { background: var(--panel); border-radius: var(--radius); padding: 1rem 1.25rem; width: 560px; max-height: 80vh; overflow: auto; }
 .picker-list { list-style: none; padding: 0; margin: 0.5rem 0; }
 .picker-list li { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
 .picker-actions, .picker-footer { display: flex; gap: 0.4rem; }
+
+/* Buttons inside box headers keep the normal font, not the heading font. */
+.box-title button { font-family: 'Segoe UI', system-ui, sans-serif; text-transform: none; letter-spacing: normal; font-weight: 400; }
+input[type='checkbox'] { accent-color: var(--accent); }
