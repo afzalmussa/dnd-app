@@ -14,3 +14,4 @@ app/release/
 __pycache__/
 .venv/
 .pytest_cache/
+*.log

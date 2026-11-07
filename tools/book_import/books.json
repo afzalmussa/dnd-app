@@ -1,0 +1,6 @@
+{
+  "phb24": {"file": "5.5e Player's Handbook.pdf", "ruleset": "2024"},
+  "xge":   {"file": "Xanathar's Guide to Everything - Deluxe.pdf", "ruleset": "2014"},
+  "tce":   {"file": "Tasha\u2019s Cauldron of Everything.pdf", "ruleset": "2014"},
+  "bgg":   {"file": "Bigby Presents Glory of the Giants.pdf", "ruleset": "2014"}
+}
