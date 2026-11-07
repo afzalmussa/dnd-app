@@ -5,6 +5,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { AppApi } from '../shared/api'
 
 const api: AppApi = {
+  wikiPublish: (scope, path) => ipcRenderer.invoke('wikiPublish', scope, path),
+  setPlayerFolder: (player) => ipcRenderer.invoke('setPlayerFolder', player),
+  removePlayerFolder: (player) => ipcRenderer.invoke('removePlayerFolder', player),
   wikiTree: (area) => ipcRenderer.invoke('wikiTree', area),
   wikiRead: (area, path) => ipcRenderer.invoke('wikiRead', area, path),
   wikiWrite: (area, path, content, expected, overwrite) => ipcRenderer.invoke('wikiWrite', area, path, content, expected, overwrite),
@@ -15,7 +18,7 @@ const api: AppApi = {
   wikiTrash: (area, path) => ipcRenderer.invoke('wikiTrash', area, path),
   wikiPages: (area) => ipcRenderer.invoke('wikiPages', area),
   onWikiChanged: (callback) => {
-    const listener = (_event: unknown, area: 'notes' | 'party') => callback(area)
+    const listener = (_event: unknown, area: 'notes' | 'party' | 'private') => callback(area)
     ipcRenderer.on('wikiChanged', listener)
     return () => ipcRenderer.removeListener('wikiChanged', listener)
   },

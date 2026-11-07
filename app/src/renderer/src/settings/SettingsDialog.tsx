@@ -6,10 +6,11 @@ import type { AppSettings } from '../../../shared/api'
 
 export function SettingsDialog({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
   const [settings, setSettings] = useState<AppSettings | null>(null)
+  const [newPlayer, setNewPlayer] = useState('')
 
   useEffect(() => { void window.api.getSettings().then(setSettings) }, [])
 
-  async function choose(which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder') {
+  async function choose(which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder' | 'privateFolder') {
     const next = await window.api.chooseFolder(which)
     if (next) { setSettings(next); onChanged() }
   }
@@ -19,11 +20,12 @@ export function SettingsDialog({ onClose, onChanged }: { onClose: () => void; on
     onChanged()
   }
 
-  const rows: { key: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder'; label: string; help: string }[] = [
+  const rows: { key: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder' | 'privateFolder'; label: string; help: string }[] = [
     { key: 'saveFolder', label: 'Characters are saved in', help: 'Point this at a shared Google Drive folder so the party and the DM see the same sheets. Existing characters stay where they were; copy them over if you want them in the new place.' },
     { key: 'contentFolder', label: 'Your corrections and homebrew are saved in', help: 'Share this folder to give your table the same corrected spells, feats and items.' },
     { key: 'notesFolder', label: 'My Notes (private story notes) are saved in', help: 'Stays on this PC unless you move it somewhere shared. Plain Markdown files, so Obsidian can open them too.' },
     { key: 'partyWikiFolder', label: 'The Party Wiki folder', help: 'Normally the shared Google Drive copy of the player wiki. Everyone with the folder sees and edits the same pages. Leave it empty if you do not use a shared wiki.' },
+    { key: 'privateFolder', label: 'From the DM (secrets just for you) is read from', help: 'A Drive folder the DM shares with you alone. Whatever the DM publishes as a secret for you appears in the Wiki under "From the DM". Leave it empty if you have none.' },
     { key: 'dmFolder', label: 'The DM view reads sheets from', help: 'The DM view only reads this folder. It never changes a character file.' }
   ]
 
@@ -36,7 +38,8 @@ export function SettingsDialog({ onClose, onChanged }: { onClose: () => void; on
             <div className="requirement">
               <h4>This PC is the</h4>
               <label><input type="radio" checked={settings.role === 'player'} onChange={() => role('player')} /> Player</label>{' '}
-              <label><input type="radio" checked={settings.role === 'dm'} onChange={() => role('dm')} /> DM (can set the campaign clock)</label>
+              <label><input type="radio" checked={settings.role === 'dm'} onChange={() => role('dm')} /> DM</label>
+              <p className="muted small">As the DM you can publish notes to the players and move the campaign clock (open <strong>DM view</strong> in the toolbar, then use Advance or Reset next to the clock). Players read the clock automatically.</p>
             </div>
             {rows.map((r) => (
               <div className="requirement" key={r.key}>
@@ -46,6 +49,21 @@ export function SettingsDialog({ onClose, onChanged }: { onClose: () => void; on
                 <p className="muted small">{r.help}</p>
               </div>
             ))}
+            {settings.role === 'dm' && (
+              <div className="requirement">
+                <h4>Player folders (for secrets)</h4>
+                <p className="muted small">One Drive folder per player, shared with that player only. When you publish, a secret marked for that player goes into their folder. Type the name exactly as you write it in the secret ("Secret for…").</p>
+                {Object.entries(settings.playerFolders).map(([name, folder]) => (
+                  <div key={name} className="small"><strong>{name}</strong> <code>{folder}</code>{' '}
+                    <button className="small danger" onClick={async () => { setSettings(await window.api.removePlayerFolder(name)); onChanged() }}>Remove</button></div>
+                ))}
+                <input type="text" className="text-input" placeholder="Player name, e.g. Auriviel" value={newPlayer} onChange={(e) => setNewPlayer(e.target.value)} />{' '}
+                <button className="small" disabled={!newPlayer.trim()} onClick={async () => {
+                  const next = await window.api.setPlayerFolder(newPlayer.trim())
+                  if (next) { setSettings(next); setNewPlayer(''); onChanged() }
+                }}>Choose their folder…</button>
+              </div>
+            )}
           </section>
         )}
       </div>

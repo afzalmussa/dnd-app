@@ -4,15 +4,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { WikiArea, WikiTreeNode } from '../../../shared/api'
 import { backlinks, extractTags, folderNote, readProperties, splitFrontMatter } from '../../../shared/wiki/wiki'
+import { extractShareBlocks, whatsappText, wrapAsSecret, wrapAsShare } from '../../../shared/wiki/publish'
 import { decorate, renderPage, type PagesByArea } from './markdown'
 
 interface Open { area: WikiArea; path: string }
 interface Conflict { theirs: string; modified: number }
-interface Ask { title: string; value: string; confirm: (value: string) => void }
+interface Ask { title: string; value: string; confirm: (value: string) => void; allowEmpty?: boolean }
 
-const AREAS: { area: WikiArea; title: string; setting: 'notesFolder' | 'partyWikiFolder' }[] = [
+const AREAS: { area: WikiArea; title: string; setting: 'notesFolder' | 'partyWikiFolder' | 'privateFolder' }[] = [
   { area: 'notes', title: 'My Notes', setting: 'notesFolder' },
-  { area: 'party', title: 'Party Wiki', setting: 'partyWikiFolder' }
+  { area: 'party', title: 'Party Wiki', setting: 'partyWikiFolder' },
+  { area: 'private', title: 'From the DM (just for me)', setting: 'privateFolder' }
 ]
 
 function flatten(nodes: WikiTreeNode[]): string[] {
@@ -20,8 +22,8 @@ function flatten(nodes: WikiTreeNode[]): string[] {
 }
 
 export function WikiView({ onClose }: { onClose: () => void }) {
-  const [trees, setTrees] = useState<Record<WikiArea, WikiTreeNode[] | null>>({ notes: null, party: null })
-  const [texts, setTexts] = useState<Record<WikiArea, { path: string; text: string }[]>>({ notes: [], party: [] })
+  const [trees, setTrees] = useState<Record<WikiArea, WikiTreeNode[] | null>>({ notes: null, party: null, private: null })
+  const [texts, setTexts] = useState<Record<WikiArea, { path: string; text: string }[]>>({ notes: [], party: [], private: [] })
   const [open, setOpen] = useState<Open | null>(null)
   const [text, setText] = useState('')
   const [modified, setModified] = useState<number | null>(null)
@@ -33,20 +35,27 @@ export function WikiView({ onClose }: { onClose: () => void }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [ask, setAsk] = useState<Ask | null>(null)
   const readRef = useRef<HTMLDivElement>(null)
+  const editorRef = useRef<HTMLTextAreaElement>(null)
+  const [role, setRole] = useState<'player' | 'dm'>('player')
+  useEffect(() => { void window.api.getSettings().then((s) => setRole(s.role)) }, [])
+  const readOnly = open?.area === 'private'
 
   const pagesByArea: PagesByArea = useMemo(
-    () => ({ notes: trees.notes ? flatten(trees.notes) : [], party: trees.party ? flatten(trees.party) : [] }),
+    () => ({ notes: trees.notes ? flatten(trees.notes) : [], party: trees.party ? flatten(trees.party) : [], private: trees.private ? flatten(trees.private) : [] }),
     [trees]
   )
 
   const reload = useCallback(async () => {
-    const [notes, party] = await Promise.all([window.api.wikiTree('notes').catch(() => null), window.api.wikiTree('party').catch(() => null)])
-    setTrees({ notes, party })
-    const [nt, pt] = await Promise.all([
-      notes ? window.api.wikiPages('notes') : Promise.resolve([]),
-      party ? window.api.wikiPages('party') : Promise.resolve([])
+    const [notes, party, priv] = await Promise.all([
+      window.api.wikiTree('notes').catch(() => null), window.api.wikiTree('party').catch(() => null), window.api.wikiTree('private').catch(() => null)
     ])
-    setTexts({ notes: nt, party: pt })
+    setTrees({ notes, party, private: priv })
+    const [nt, pt, vt] = await Promise.all([
+      notes ? window.api.wikiPages('notes') : Promise.resolve([]),
+      party ? window.api.wikiPages('party') : Promise.resolve([]),
+      priv ? window.api.wikiPages('private') : Promise.resolve([])
+    ])
+    setTexts({ notes: nt, party: pt, private: vt })
   }, [])
 
   const openPage = useCallback(async (area: WikiArea, path: string) => {
@@ -166,7 +175,45 @@ export function WikiView({ onClose }: { onClose: () => void }) {
     setStatus('Moved to the Recycle Bin.')
   }
 
-  async function chooseFolder(setting: 'notesFolder' | 'partyWikiFolder') {
+  // DM: copy the shared and secret parts of notes to the Party Wiki and the players' private folders.
+  async function publish(scope: 'all' | 'page') {
+    try {
+      const r = await window.api.wikiPublish(scope, open?.path)
+      const secrets = Object.entries(r.secrets).map(([p, n]) => `${n} for ${p}`).join(', ')
+      setStatus(`Published ${r.pages} page${r.pages === 1 ? '' : 's'}: ${r.shared} shared part${r.shared === 1 ? '' : 's'}${secrets ? `, secrets: ${secrets}` : ''}.${r.warnings.length ? ` ${r.warnings.join(' ')}` : ''}`)
+    } catch (e) { setStatus((e as Error).message) }
+  }
+
+  // Wraps the selected text in the editor as a shared part, or a secret for one player.
+  function markSelection(kind: 'share' | 'secret') {
+    const el = editorRef.current
+    if (!el) return
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    if (start === end) { setStatus('Select some text in the editor first.'); return }
+    const apply = (title: string, player: string) => {
+      const selected = text.slice(start, end)
+      const wrapped = kind === 'share' ? wrapAsShare(selected, title) : wrapAsSecret(selected, player, title)
+      setText(text.slice(0, start) + wrapped + text.slice(end))
+      setDirty(true)
+    }
+    setAsk({
+      title: kind === 'share' ? 'Heading for the part you are sharing (optional)' : 'Which player is this secret for? (their name, as set in Settings)', value: '',
+      confirm: (value) => apply(kind === 'share' ? value : '', kind === 'secret' ? value : ''), allowEmpty: kind === 'share'
+    })
+  }
+
+  // Plain text for pasting into WhatsApp: the shared parts of a DM note, or the whole page.
+  async function copyForWhatsApp() {
+    if (!open) return
+    const name = open.path.split('/').pop()!.replace(/\.md$/i, '')
+    const blocks = extractShareBlocks(text).filter((b) => b.kind === 'share')
+    const body = blocks.length ? blocks : [{ kind: 'share' as const, player: null, title: '', body: splitFrontMatter(text).body.trim() }]
+    await navigator.clipboard.writeText(whatsappText(name, body))
+    setStatus('Copied. Paste it into WhatsApp.')
+  }
+
+  async function chooseFolder(setting: 'notesFolder' | 'partyWikiFolder' | 'privateFolder') {
     if (await window.api.chooseFolder(setting)) await reload()
   }
 
@@ -225,10 +272,13 @@ export function WikiView({ onClose }: { onClose: () => void }) {
     <div className="wiki">
       <div className="wiki-bar">
         <strong>Wiki</strong>
-        <button className="small" onClick={() => newPage(open?.area ?? 'notes')}>New page</button>
-        <button className="small" onClick={() => newFolder(open?.area ?? 'notes')}>New folder</button>
-        <button className="small" disabled={!open} onClick={renamePage}>Rename</button>
-        <button className="small danger" disabled={!open} onClick={deletePage}>Delete</button>
+        <button className="small" disabled={readOnly} onClick={() => newPage(open?.area ?? 'notes')}>New page</button>
+        <button className="small" disabled={readOnly} onClick={() => newFolder(open?.area ?? 'notes')}>New folder</button>
+        <button className="small" disabled={!open || readOnly} onClick={renamePage}>Rename</button>
+        <button className="small danger" disabled={!open || readOnly} onClick={deletePage}>Delete</button>
+        {role === 'dm' && <button className="small" disabled={open?.area !== 'notes'} onClick={() => publish('page')} title="Copy the shared and secret parts of this page to the players">Publish this page</button>}
+        {role === 'dm' && <button className="small" onClick={() => publish('all')} title="Publish every note that has shared or secret parts (end of session)">Publish all</button>}
+        <button className="small" disabled={!open} onClick={copyForWhatsApp} title="Copy the shared text so you can paste it into WhatsApp">Copy for WhatsApp</button>
         <button className="small" onClick={() => void reload()}>Refresh</button>
         <span className="muted small wiki-status">{dirty ? 'Unsaved…' : status}</span>
         <button className="small" onClick={onClose}>Back to the sheet</button>
@@ -240,7 +290,7 @@ export function WikiView({ onClose }: { onClose: () => void }) {
             <div>
               {results.length === 0 && <p className="muted small">Nothing found.</p>}
               {results.map((r) => <button key={`${r.area}${r.path}`} className="tree-row" onClick={() => { setSearch(''); void openPage(r.area, r.path) }}>
-                <span className="chip">{r.area === 'notes' ? 'Mine' : 'Party'}</span> {r.path.replace(/\.md$/i, '')}</button>)}
+                <span className="chip">{r.area === 'notes' ? 'Mine' : r.area === 'party' ? 'Party' : 'DM'}</span> {r.path.replace(/\.md$/i, '')}</button>)}
             </div>
           ) : AREAS.map(({ area, title, setting }) => (
             <div key={area} className="wiki-area">
@@ -257,8 +307,14 @@ export function WikiView({ onClose }: { onClose: () => void }) {
             <>
               <div className="wiki-title">
                 <h2>{open.path.split('/').pop()!.replace(/\.md$/i, '')}</h2>
-                <span className="muted small">{open.area === 'notes' ? 'My Notes' : 'Party Wiki'} / {open.path}</span>
-                <button className="small" onClick={() => setEditing(!editing)}>{editing ? 'Done' : 'Edit'}</button>
+                <span className="muted small">{open.area === 'notes' ? 'My Notes' : open.area === 'party' ? 'Party Wiki' : 'From the DM'} / {open.path}</span>
+                {!readOnly && <button className="small" onClick={() => setEditing(!editing)}>{editing ? 'Done' : 'Edit'}</button>}
+                {editing && open.area === 'notes' && (
+                  <>
+                    <button className="small" onClick={() => markSelection('share')} title="Mark the selected text as shared with the whole party">Share selection</button>
+                    <button className="small" onClick={() => markSelection('secret')} title="Mark the selected text as a secret for one player">Secret for…</button>
+                  </>
+                )}
               </div>
               {conflict && (
                 <div className="conflict">
@@ -271,7 +327,7 @@ export function WikiView({ onClose }: { onClose: () => void }) {
                 </div>
               )}
               <div className={editing ? 'wiki-split' : ''}>
-                {editing && <textarea className="wiki-editor" value={text} spellCheck onChange={(e) => { setText(e.target.value); setDirty(true) }} />}
+                {editing && <textarea ref={editorRef} className="wiki-editor" value={text} spellCheck onChange={(e) => { setText(e.target.value); setDirty(true) }} />}
                 <div ref={readRef} className="wiki-read" onClick={onPageClick} dangerouslySetInnerHTML={{ __html: html }} />
               </div>
             </>
@@ -296,10 +352,10 @@ export function WikiView({ onClose }: { onClose: () => void }) {
           <div className="modal levelup ask">
             <h3>{ask.title}</h3>
             <input autoFocus type="text" className="text-input" value={ask.value} onChange={(e) => setAsk({ ...ask, value: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter' && ask.value.trim()) { ask.confirm(ask.value.trim()); setAsk(null) } }} />
+              onKeyDown={(e) => { if (e.key === 'Enter' && (ask.value.trim() || ask.allowEmpty)) { ask.confirm(ask.value.trim()); setAsk(null) } }} />
             <footer>
               <button onClick={() => setAsk(null)}>Cancel</button>
-              <button className="primary" disabled={!ask.value.trim()} onClick={() => { ask.confirm(ask.value.trim()); setAsk(null) }}>OK</button>
+              <button className="primary" disabled={!ask.value.trim() && !ask.allowEmpty} onClick={() => { ask.confirm(ask.value.trim()); setAsk(null) }}>OK</button>
             </footer>
           </div>
         </div>

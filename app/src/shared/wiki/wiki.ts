@@ -1,7 +1,7 @@
 // Wiki logic that needs no Electron or React: front matter, [[links]], tags, rename rewriting.
 // Pure functions, so they are easy to test. See docs/wiki-design.md.
 
-export type Area = 'notes' | 'party'
+export type Area = 'notes' | 'party' | 'private'
 
 // ---- front matter ----------------------------------------------------------------------------
 

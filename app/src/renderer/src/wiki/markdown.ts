@@ -13,7 +13,8 @@ export type PagesByArea = Record<Area, string[]>
 // A link in My Notes looks in My Notes first, then the Party Wiki. A link in the Party Wiki looks only in the
 // Party Wiki, so shared pages never point at someone's private notes.
 export function resolveInAreas(target: string, area: Area, fromPath: string, pages: PagesByArea): { area: Area; path: string; ambiguous: boolean } | null {
-  const order: Area[] = area === 'notes' ? ['notes', 'party'] : ['party']
+  // My Notes look in My Notes, then the Party Wiki, then "From the DM". Shared pages only look in the Party Wiki. "From the DM" looks there, then in the Party Wiki.
+  const order: Area[] = area === 'notes' ? ['notes', 'party', 'private'] : area === 'party' ? ['party'] : ['private', 'party']
   for (const a of order) {
     const hit = resolveLink(target, a === area ? fromPath : '', pages[a])
     if (hit) return { area: a, path: hit.path, ambiguous: hit.ambiguous }

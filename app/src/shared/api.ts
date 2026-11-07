@@ -68,6 +68,15 @@ export interface AppSettings {
   dmFolder: string
   notesFolder: string
   partyWikiFolder: string
+  privateFolder: string
+  playerFolders: Record<string, string>
+}
+
+export interface PublishSummary {
+  pages: number // pages that had something to share
+  shared: number // shared parts written to the Party Wiki
+  secrets: Record<string, number> // secret parts written, per player
+  warnings: string[]
 }
 
 export interface WikiTreeNode {
@@ -78,7 +87,7 @@ export interface WikiTreeNode {
 }
 export interface WikiPage { content: string; modified: number }
 export type WriteResult = { ok: true; modified: number } | { ok: false; conflict: true; theirs: string; modified: number }
-export type WikiArea = 'notes' | 'party'
+export type WikiArea = 'notes' | 'party' | 'private'
 
 // The DM's in-game clock, shared through campaign.json in the save folder.
 export interface Campaign {
@@ -88,7 +97,12 @@ export interface Campaign {
 export interface AppApi {
   getSettings(): Promise<AppSettings>
   // Opens a folder picker. Returns the new settings, or null if cancelled.
-  chooseFolder(which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder'): Promise<AppSettings | null>
+  chooseFolder(which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder' | 'privateFolder'): Promise<AppSettings | null>
+  // DM: publish the shared and secret parts of notes. Only the DM's PC can do this.
+  wikiPublish(scope: 'all' | 'page', path?: string): Promise<PublishSummary>
+  // DM: pick the private folder for one player (a Drive folder shared with that player only).
+  setPlayerFolder(player: string): Promise<AppSettings | null>
+  removePlayerFolder(player: string): Promise<AppSettings>
   // Wiki. Paths are relative to the area's folder. Nothing outside the two folders can be touched.
   wikiTree(area: WikiArea): Promise<WikiTreeNode[] | null>
   wikiRead(area: WikiArea, path: string): Promise<WikiPage>

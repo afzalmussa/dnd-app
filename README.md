@@ -74,3 +74,17 @@ Makes `app\release\DnD Character Manager-<version>-win.zip` and a portable `.exe
 The **Wiki** button switches to your story notes: **My Notes** (private, a folder on your PC) and the **Party Wiki** (a shared folder, normally the Google Drive player wiki). Pages are plain Markdown, so Obsidian can open the same folders. Choose both folders in **Settings**.
 
 Supported: `[[links]]` (with labels, headings and `Folder/Page` paths), `![[image.png]]`, `#tags`, callouts (`> [!note] Title`), front matter (shown as properties and saved back unchanged), folder notes, "Linked from", search, rename (updates links), delete (Recycle Bin). If a page was changed elsewhere while you had it open, you choose: load theirs, keep yours, or save yours as a copy. Not supported: Obsidian plugins and embedding one note inside another.
+
+## Sharing notes with the players (DM)
+
+Everything shared goes through folders, so Google Drive does the syncing. Nobody needs to be online at the same time: players see changes when Drive syncs and the app refreshes the Wiki on its own.
+
+1. **Settings** (DM PC): choose **My Notes** (your private vault), the shared **Party Wiki** folder, and set the role to **DM**. For secrets, add a **Player folder** per player: a separate Drive folder shared with that player only.
+2. **Players:** choose the Party Wiki folder, and (for secrets) the **From the DM** folder that you shared with them.
+3. **Write your notes** in My Notes as usual, and paste in monologues, place descriptions or dialogue. Everything stays private unless you mark it:
+   - select text in the editor and click **Share selection** (the whole party sees it), or **Secret for…** (one player sees it);
+   - this is a plain callout: `> [!share] Title` or `> [!secret Auriviel] Title`, so Obsidian shows it too.
+4. **Publish this page** or **Publish all** (end of session). Only the marked parts are copied to `Party Wiki/DM Shares/` (with an `Index.md` front page) and each player's private folder. Your own page is never changed.
+5. **Copy for WhatsApp** copies the shared text so you can paste it into a chat. WhatsApp itself cannot be connected to the app, so that step stays manual.
+
+Secrets are only as private as the Drive folder: share each player's folder with that player only.

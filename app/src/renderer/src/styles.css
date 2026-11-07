@@ -353,3 +353,6 @@ button.link { background: none; border: none; color: inherit; text-decoration: u
 .wiki-read blockquote.callout { border-left-color: #8b2a2a; background: #231a1b; }
 .conflict { background: #3a2a10; border: 1px solid #e0b050; padding: 0.5rem 0.8rem; margin: 0.5rem 0; }
 .modal.ask { width: min(420px, 92vw); gap: 0.6rem; }
+
+/* A radio button or checkbox sits beside its text, not above it. */
+label:has(> input[type='radio']), label:has(> input[type='checkbox']) { flex-direction: row; align-items: center; gap: 0.4rem; }

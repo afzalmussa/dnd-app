@@ -20,6 +20,7 @@ import { deleteUserEntry, saveUserEntry, type ContentKind } from './userContent'
 import { getCampaign, listParty, setCampaign } from './party'
 import { getSaveFolder, loadSettings, saveSettings } from './settings'
 import * as wiki from './wikiFiles'
+import { publish } from './wikiPublish'
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -69,7 +70,7 @@ function createWindow(): BrowserWindow {
 
 function registerHandlers(): void {
   ipcMain.handle('getSettings', () => loadSettings())
-  ipcMain.handle('chooseFolder', async (event, which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder') => {
+  ipcMain.handle('chooseFolder', async (event, which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder' | 'privateFolder') => {
     const parent = BrowserWindow.fromWebContents(event.sender)
     const options = { properties: ['openDirectory' as const, 'createDirectory' as const], title: 'Choose a folder' }
     const result = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options)
@@ -78,7 +79,7 @@ function registerHandlers(): void {
     // The DM view follows the save folder until the DM picks a different one.
     if (which === 'saveFolder' && loadSettings().dmFolder === loadSettings().saveFolder) change.dmFolder = result.filePaths[0]
     const saved = saveSettings(change)
-    if (which === 'notesFolder' || which === 'partyWikiFolder') {
+    if (which === 'notesFolder' || which === 'partyWikiFolder' || which === 'privateFolder') {
       const win = BrowserWindow.getAllWindows()[0]
       if (win) wiki.startWatching(win)
     }
@@ -88,6 +89,20 @@ function registerHandlers(): void {
   ipcMain.handle('getCampaign', () => getCampaign())
   ipcMain.handle('setCampaign', (_e, campaign: { gameMinutes: number }) => setCampaign(campaign))
   ipcMain.handle('listParty', () => listParty())
+  ipcMain.handle('wikiPublish', (_e, scope: 'all' | 'page', path?: string) => publish(scope, path))
+  ipcMain.handle('setPlayerFolder', async (event, player: string) => {
+    if (loadSettings().role !== 'dm') throw new Error('Only the DM sets player folders.')
+    const parent = BrowserWindow.fromWebContents(event.sender)
+    const options = { properties: ['openDirectory' as const, 'createDirectory' as const], title: `Private folder for ${player}` }
+    const result = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options)
+    if (result.canceled || result.filePaths.length === 0) return null
+    return saveSettings({ playerFolders: { ...loadSettings().playerFolders, [player]: result.filePaths[0] } })
+  })
+  ipcMain.handle('removePlayerFolder', (_e, player: string) => {
+    const folders = { ...loadSettings().playerFolders }
+    delete folders[player]
+    return saveSettings({ playerFolders: folders })
+  })
   ipcMain.handle('wikiTree', (_e, area) => wiki.listTree(area))
   ipcMain.handle('wikiRead', (_e, area, path) => wiki.readPage(area, path))
   ipcMain.handle('wikiWrite', (_e, area, path, content, expected, overwrite) => wiki.writePage(area, path, content, expected, overwrite))

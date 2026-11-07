@@ -13,6 +13,8 @@ export interface Settings {
   dmFolder: string // the folder of party sheets the DM view reads (read-only)
   notesFolder: string // My Notes: private notes
   partyWikiFolder: string // Party Wiki: shared pages (empty until chosen)
+  privateFolder: string // "From the DM": a folder only this player can see, where the DM publishes their secrets
+  playerFolders: Record<string, string> // DM only: player name -> that player's private folder
 }
 
 function settingsPath(): string {
@@ -21,7 +23,7 @@ function settingsPath(): string {
 
 function defaults(): Settings {
   const saveFolder = join(app.getPath('userData'), 'characters')
-  return { saveFolder, contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', dmFolder: saveFolder, notesFolder: join(app.getPath('userData'), 'notes'), partyWikiFolder: '' }
+  return { saveFolder, contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', dmFolder: saveFolder, notesFolder: join(app.getPath('userData'), 'notes'), partyWikiFolder: '', privateFolder: '', playerFolders: {} }
 }
 
 export function loadSettings(): Settings {
