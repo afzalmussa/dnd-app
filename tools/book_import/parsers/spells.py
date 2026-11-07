@@ -14,6 +14,9 @@ from parsers.classes import slug
 SCHOOLS = {"Abjuration", "Conjuration", "Divination", "Enchantment", "Evocation", "Illusion", "Necromancy", "Transmutation"}
 LABELS = ["Casting Time", "Range", "Components", "Duration"]
 FOOTER = re.compile(r"CHAPTER\s*\d+\s*\S?\s*SPELLS|^\W*\d+\W*$", re.IGNORECASE)
+# 2014 books: "3rd-level necromancy (ritual)" and "Evocation cantrip"; the class list is not on the entry.
+LEVEL_LINE_2014 = re.compile(r"^(\d)(?:st|nd|rd|th)-level\s+([A-Za-z ]+?)(?:\s*(\(ritual\)))?\s*$", re.IGNORECASE)
+CANTRIP_LINE_2014 = re.compile(r"^([A-Za-z ]+?)\s+can\s?trip\s*$", re.IGNORECASE)
 LEVEL_LINE = re.compile(r"^Level\s+(\d)\s+([A-Za-z]+)\s*\((.+)\)\s*$")
 CANTRIP_LINE = re.compile(r"^([A-Za-z]+)\s+Cantrip\s*\((.+)\)\s*$")
 HIGHER = re.compile(r"^(Using a Higher-Level Spell Slot|Cantrip Upgrade)\.\s*(.*)")
@@ -53,7 +56,7 @@ def parse_components(text):
     return comp
 
 
-def parse_spells(doc, cache_dir, book, ruleset, first_page, last_page):
+def parse_spells(doc, cache_dir, book, ruleset, first_page, last_page, style="2024"):
     fixes = []
     lines, pages, ocr_pages = [], [], set()
     for p in range(first_page, last_page + 1):
@@ -84,12 +87,19 @@ def parse_spells(doc, cache_dir, book, ruleset, first_page, last_page):
         if not lines[name_i].isupper():
             flags.append(f"name line '{lines[name_i]}' is not capitals; name may be wrong")
         t = re.sub(r"^Level\s+[Il]\b", "Level 1", lines[type_i])
+        if style == "2014":
+            t = re.sub(r"^[lI1]\s?(st)", r"1\1", t.replace("/eve/", "level"))  # "l st-/eve/" and "I st-level" are "1st-level"
         if t != lines[type_i]:
             fixes.append({"page": pages[type_i], "rule": "spell-level-digit", "before": lines[type_i], "after": t})
         level = school = classes = None
-        m = LEVEL_LINE.match(t)
-        c = CANTRIP_LINE.match(t)
-        if m:
+        m = (LEVEL_LINE_2014 if style == "2014" else LEVEL_LINE).match(t)
+        c = (CANTRIP_LINE_2014 if style == "2014" else CANTRIP_LINE).match(t)
+        ritual_in_type = False
+        if m and style == "2014":
+            level, school, classes, ritual_in_type = int(m.group(1)), m.group(2).replace(" ", "").title(), None, bool(m.group(3))
+        elif c and style == "2014":
+            level, school, classes = 0, c.group(1).replace(" ", "").title(), None
+        elif m:
             level, school, classes = int(m.group(1)), m.group(2), m.group(3)
         elif c:
             level, school, classes = 0, c.group(1), c.group(2)
@@ -124,7 +134,7 @@ def parse_spells(doc, cache_dir, book, ruleset, first_page, last_page):
             "id": f"spell.{slug(name)}.{book}", "kind": "spell", "name": name,
             "source": {"book": book, "ruleset": ruleset, "page": page, "ocrUsed": page in ocr_pages, "flags": flags},
             "level": level, "school": school,
-            "castingTime": re.sub(r"\s*or Ritual$", "", ct) or None, "ritual": "Ritual" in ct,
+            "castingTime": re.sub(r"\s*or Ritual$", "", ct) or None, "ritual": "Ritual" in ct or ritual_in_type,
             "range": fields.get("Range") or None,
             "components": parse_components(fields["Components"]) if fields.get("Components") else None,
             "duration": dur or None, "concentration": dur.startswith("Concentration"),

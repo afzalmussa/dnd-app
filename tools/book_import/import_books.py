@@ -60,7 +60,7 @@ def main():
     spells, spell_problems = [], {}
     if kind in ("", "spells") and "spells" in sections:
         sp = sections["spells"]
-        spells, spell_fixes = parse_spells(doc, ROOT / "ocr-cache", args.book, book["ruleset"], sp["first"], sp["last"])
+        spells, spell_fixes = parse_spells(doc, ROOT / "ocr-cache", args.book, book["ruleset"], sp["first"], sp["last"], sp.get("style", "2024"))
         fixes += spell_fixes
         spell_problems = {s["id"]: validate_spell(s) for s in spells}
 

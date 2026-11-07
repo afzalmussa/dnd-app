@@ -185,7 +185,12 @@
         "first": 55,
         "last": 58
       }
-    ]
+    ],
+    "spells": {
+      "first": 150,
+      "last": 173,
+      "style": "2014"
+    }
   },
   "tce": {
     "legacy_feats": {
@@ -222,6 +227,11 @@
         "cleric",
         "wizard"
       ]
+    },
+    "spells": {
+      "first": 106,
+      "last": 118,
+      "style": "2014"
     }
   }
 }
