@@ -356,3 +356,17 @@ button.link { background: none; border: none; color: inherit; text-decoration: u
 
 /* A radio button or checkbox sits beside its text, not above it. */
 label:has(> input[type='radio']), label:has(> input[type='checkbox']) { flex-direction: row; align-items: center; gap: 0.4rem; }
+
+.modal.encounter { width: min(1500px, 98vw); }
+.encounter-grid { display: grid; grid-template-columns: 280px 1fr 1.1fr; gap: 1rem; flex: 1; min-height: 0; overflow: hidden; }
+.encounter-browser, .encounter-detail, .encounter-tracker { overflow-y: auto; min-height: 0; }
+.encounter-list { overflow-y: auto; }
+.encounter-add { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+.stat-block { border: 1px solid #8b2a2a; background: #1a1314; padding: 0.7rem 0.9rem; }
+.stat-block h3 { margin: 0; } .stat-block h4 { margin: 0.6rem 0 0.2rem; border-bottom: 1px solid #8b2a2a; }
+.stat-block p { margin: 0.25rem 0; }
+.ability-table { border-collapse: collapse; margin: 0.4rem 0; } .ability-table th, .ability-table td { padding: 0.1rem 0.6rem; text-align: center; }
+.tracker-bar { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.tracker-table { width: 100%; border-collapse: collapse; } .tracker-table td { border-bottom: 1px solid #3a2a2a; padding: 0.3rem; vertical-align: top; }
+.tracker-table tr.current { background: #3a1d1d; } .tracker-table tr.down { opacity: 0.5; }
+.hp-controls { display: flex; gap: 0.25rem; align-items: center; }

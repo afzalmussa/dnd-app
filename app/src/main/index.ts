@@ -112,6 +112,7 @@ function registerHandlers(): void {
   ipcMain.handle('wikiRename', (_e, area, path, newPath) => wiki.renamePage(area, path, newPath))
   ipcMain.handle('wikiTrash', (_e, area, path) => wiki.trashPage(area, path))
   ipcMain.handle('wikiPages', (_e, area) => wiki.allPagesWithText(area))
+  ipcMain.handle('listMonsters', () => mergedContent('monster'))
   ipcMain.handle('listItems', () => listItems())
   ipcMain.handle('listContent', (_e, kind: ContentKind) => mergedContent(kind))
   ipcMain.handle('saveContent', (_e, kind: ContentKind, entry: { id: string }) => saveUserEntry(kind, entry))

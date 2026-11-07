@@ -58,7 +58,7 @@ export interface FeatInfo {
   ruleset: string
 }
 
-export type ContentKind = 'spell' | 'feat' | 'item' | 'class' | 'subclass' | 'species' | 'background'
+export type ContentKind = 'spell' | 'feat' | 'item' | 'class' | 'subclass' | 'species' | 'background' | 'monster'
 export type ContentOrigin = 'book' | 'edited' | 'user'
 
 export interface AppSettings {
@@ -95,6 +95,8 @@ export interface Campaign {
 }
 
 export interface AppApi {
+  // Monsters from the Monster Manual (and your own), for the DM's encounter tools.
+  listMonsters(): Promise<Record<string, any>[]>
   getSettings(): Promise<AppSettings>
   // Opens a folder picker. Returns the new settings, or null if cancelled.
   chooseFolder(which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder' | 'privateFolder'): Promise<AppSettings | null>

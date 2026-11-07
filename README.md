@@ -88,3 +88,7 @@ Everything shared goes through folders, so Google Drive does the syncing. Nobody
 5. **Copy for WhatsApp** copies the shared text so you can paste it into a chat. WhatsApp itself cannot be connected to the app, so that step stays manual.
 
 Secrets are only as private as the Drive folder: share each player's folder with that player only.
+
+## Encounters (DM)
+
+**Encounter** in the toolbar: search the Monster Manual (504 stat blocks, imported with `python tools\book_import\import_books.py --book mm`), read a stat block, add monsters (several of one kind are numbered), add your party from the DM folder, roll monster initiative, then step through turns and rounds. Track hit points (Dmg / Heal), conditions and the total XP. Click a monster's name in the tracker to see its stat block. The encounter is remembered on this PC. Difficulty ratings are not shown: the XP threshold tables live in the DMG and the data pack only has the 2014 one.

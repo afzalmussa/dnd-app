@@ -7,12 +7,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { loadSettings } from './settings'
 
-export const CONTENT_KINDS = ['spell', 'feat', 'item', 'class', 'subclass', 'species', 'background'] as const
+export const CONTENT_KINDS = ['spell', 'feat', 'item', 'class', 'subclass', 'species', 'background', 'monster'] as const
 export type ContentKind = (typeof CONTENT_KINDS)[number]
 
 export const PACK_FILE: Record<ContentKind, string> = {
   spell: 'spells.json', feat: 'feats.json', item: 'items.json', class: 'classes.json',
-  subclass: 'subclasses.json', species: 'species.json', background: 'backgrounds.json'
+  subclass: 'subclasses.json', species: 'species.json', background: 'backgrounds.json', monster: 'monsters.json'
 }
 
 function folder(): string {

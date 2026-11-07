@@ -3,6 +3,7 @@
 import { exhaustionRollPenalty } from '../../shared/rules/exhaustion'
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createBlankCharacter } from '../../shared/character'
+import { EncounterView } from './dm/EncounterView'
 import { PartyView } from './dm/PartyView'
 import { WikiView } from './wiki/WikiView'
 import { ContentEditor } from './editor/ContentEditor'
@@ -30,6 +31,7 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [showEditor, setShowEditor] = useState(false)
   const [showParty, setShowParty] = useState(false)
+  const [showEncounter, setShowEncounter] = useState(false)
   const [showWiki, setShowWiki] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -189,6 +191,7 @@ export default function App() {
     <div className="app">
       {showEditor && <ContentEditor onClose={() => setShowEditor(false)} />}
       {showParty && <PartyView onClose={() => setShowParty(false)} />}
+      {showEncounter && <EncounterView onClose={() => setShowEncounter(false)} />}
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} onChanged={() => undefined} />}
       <header className="toolbar">
         <strong className="app-name">DnD Character Manager</strong>
@@ -196,6 +199,7 @@ export default function App() {
         <button onClick={exportFile} disabled={!character}>Export</button>
         <button onClick={importFile}>Import</button>
         <button className={showWiki ? 'active' : ''} onClick={() => setShowWiki(!showWiki)} title="Your story notes and the party wiki">Wiki</button>
+        <button onClick={() => setShowEncounter(true)} title="Monster stat blocks and a combat tracker">Encounter</button>
         <button onClick={() => setShowParty(true)} title="All party sheets at a glance (read-only)">DM view</button>
         <button onClick={() => setShowSettings(true)}>Settings</button>
         <button onClick={() => setShowEditor(true)} title="Correct imported entries or add your own spells, feats, items and more">Content editor</button>

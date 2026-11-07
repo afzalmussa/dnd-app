@@ -14,7 +14,8 @@ const KINDS: { kind: ContentKind; label: string; form: boolean }[] = [
   { kind: 'class', label: 'Classes', form: false },
   { kind: 'subclass', label: 'Subclasses', form: false },
   { kind: 'species', label: 'Species', form: false },
-  { kind: 'background', label: 'Backgrounds', form: false }
+  { kind: 'background', label: 'Backgrounds', form: false },
+  { kind: 'monster', label: 'Monsters', form: false }
 ]
 const SCHOOLS = ['Abjuration', 'Conjuration', 'Divination', 'Enchantment', 'Evocation', 'Illusion', 'Necromancy', 'Transmutation']
 const RULESETS = ['2024', '2014']
