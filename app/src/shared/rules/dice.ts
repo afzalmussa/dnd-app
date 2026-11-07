@@ -69,6 +69,15 @@ export interface DiceResult {
   flat: number
 }
 
+// "max" when every die rolled its highest face (the best the dice could do), "min" when every die
+// rolled 1 (the worst). Modifiers are ignored. Dice that are subtracted count the other way round.
+export function rollOutcome(rolls: DiceResult['rolls']): 'max' | 'min' | undefined {
+  if (rolls.length === 0) return undefined
+  if (rolls.every((r) => (r.sign > 0 ? r.value === r.sides : r.value === 1))) return 'max'
+  if (rolls.every((r) => (r.sign > 0 ? r.value === 1 : r.value === r.sides))) return 'min'
+  return undefined
+}
+
 // critical: true doubles the number of dice (a critical hit rolls the damage dice twice).
 export function rollDice(parsed: ParsedDice, options: { critical?: boolean } = {}, random: Random = Math.random): DiceResult {
   const rolls: DiceResult['rolls'] = []

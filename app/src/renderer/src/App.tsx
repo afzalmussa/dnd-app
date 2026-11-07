@@ -12,7 +12,7 @@ import { CharacterPicker } from './CharacterPicker'
 import { PopoutWindow } from './PopoutWindow'
 import { ResizeHandle } from './ResizeHandle'
 import { RollLog, type DockPosition } from './RollLog'
-import { d20Entry, diceEntry, type RollEntry } from './rolls'
+import { d20Entry, diceEntry, rollClass, rollText, type RollEntry } from './rolls'
 import { Sheet } from './sheet/Sheet'
 import { SheetContext, type SheetContextValue } from './SheetContext'
 import { useStoredState } from './storedState'
@@ -87,8 +87,14 @@ export default function App() {
     dirty.current = true
   }
 
+  const [toast, setToast] = useState<RollEntry | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   function addRoll(entry: RollEntry) {
     setRolls((previous) => [entry, ...previous].slice(0, 100))
+    setToast(entry)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 4000)
   }
 
   function rollD20(label: string, bonus: number, event?: MouseEvent) {
@@ -200,6 +206,16 @@ export default function App() {
               : saveStatus === 'saved' ? 'All changes saved' : 'Saving…')}
         </span>
       </header>
+
+      {toast && (
+        <div className="roll-toast" role="status" onClick={() => setToast(null)}>
+          <span className={`roll-toast-total ${rollClass(toast)}`}>{rollText(toast)}</span>
+          <span className="roll-toast-text">
+            <strong>{toast.label}</strong>
+            <span className="muted">{toast.detail}</span>
+          </span>
+        </div>
+      )}
 
       {message && (
         <div className="message" role="status">

@@ -54,3 +54,14 @@ describe('rollDice', () => {
     expect(result.total).toBe(7)
   })
 })
+
+describe('roll outcome colours', () => {
+  it('is max when every die shows its highest face, min when every die shows 1', async () => {
+    const { rollOutcome } = await import('../../src/shared/rules/dice')
+    expect(rollOutcome([{ sides: 8, value: 8, sign: 1 }])).toBe('max')
+    expect(rollOutcome([{ sides: 8, value: 1, sign: 1 }])).toBe('min')
+    expect(rollOutcome([{ sides: 8, value: 6, sign: 1 }])).toBeUndefined()
+    expect(rollOutcome([{ sides: 6, value: 6, sign: 1 }, { sides: 6, value: 5, sign: 1 }])).toBeUndefined()
+    expect(rollOutcome([])).toBeUndefined()
+  })
+})

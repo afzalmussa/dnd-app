@@ -1,7 +1,7 @@
 // Turns dice results into entries for the roll log.
 
 import { formatBonus } from '../../shared/rules/abilities'
-import { parseDice, rollD20, rollDice, type RollMode } from '../../shared/rules/dice'
+import { parseDice, rollD20, rollDice, rollOutcome, type RollMode } from '../../shared/rules/dice'
 
 export interface RollEntry {
   id: number
@@ -10,6 +10,18 @@ export interface RollEntry {
   detail: string
   total: number
   natural?: 'nat20' | 'nat1'
+  outcome?: 'max' | 'min' // damage and other dice: the best or worst the dice could do
+}
+
+// The style for a result: yellow for a natural 20, red for a natural 1 or the lowest possible roll,
+// green for the highest the dice could roll.
+export function rollClass(entry: RollEntry): string {
+  return entry.natural ?? entry.outcome ?? ''
+}
+
+// What is shown as the result: a natural 20 gets an exclamation mark.
+export function rollText(entry: RollEntry): string {
+  return `${entry.total}${entry.natural === 'nat20' ? '!' : ''}`
 }
 
 let nextId = 1
@@ -43,6 +55,7 @@ export function diceEntry(label: string, expression: string, critical = false): 
     time: now(),
     label: critical ? `${label} (critical)` : label,
     detail: `${expression} [${dice}]${flat}`,
-    total: result.total
+    total: result.total,
+    outcome: rollOutcome(result.rolls)
   }
 }

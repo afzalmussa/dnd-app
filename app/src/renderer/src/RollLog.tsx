@@ -2,7 +2,7 @@
 // docked at the bottom, docked on the right, or in its own window.
 
 import type { RollMode } from '../../shared/rules/dice'
-import type { RollEntry } from './rolls'
+import { rollClass, rollText, type RollEntry } from './rolls'
 
 export type DockPosition = 'bottom' | 'right' | 'window'
 
@@ -51,8 +51,8 @@ export function RollLog(props: {
         <ol className="roll-entries">
           {entries.length === 0 && <li className="muted">Click any bonus on the sheet to roll it.</li>}
           {entries.map((entry) => (
-            <li key={entry.id} className={entry.natural ?? ''}>
-              <span className="roll-total">{entry.total}</span>
+            <li key={entry.id} className={rollClass(entry)}>
+              <span className={`roll-total ${rollClass(entry)}`}>{rollText(entry)}</span>
               <span className="roll-label">{entry.label}</span>
               <span className="muted roll-detail">{entry.detail}</span>
               {entry.natural === 'nat20' && <span className="badge good">Natural 20</span>}
