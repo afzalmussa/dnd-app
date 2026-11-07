@@ -399,6 +399,6 @@ Every character uses the 2024 rules. 2014 books stay allowed as legacy content. 
 | Older backgrounds: +2/+1 or +1/+1/+1 to any scores, and an Origin feat of your choice; older species' ability increases are ignored | Chapter 2 sidebar (p.37) | `data-pack/phb24/legacy-rules.json`, character `origin` field |
 | Same-named 2014 feats are replaced by the 2024 version (Slasher, Crusher, Piercer, Poisoner, Chef, Skill Expert, Fey Touched, Shadow Touched, Telekinetic, Telepathic) | Introduction, "What's New" (p.4) | `supersededBy` on Tasha's feats |
 | An older Cleric subclass's Divine Strike or Potent Spellcasting is used only if chosen for Blessed Strikes | Cleric, level 7 (p.70) | `legacy-rules.json` |
-| 2014 subclass chosen at level 3; earlier features arrive at level 3 | Your table rule (to confirm) | `printedLevel` and `level` on each subclass feature |
+| 2014 subclass chosen at level 3; earlier features arrive at level 3 | Your table rule (confirmed 2026-11-07) | `printedLevel` and `level` on each subclass feature |
 
 The character file now has `ruleset: "2024"` and `origin: { backgroundIncreases, originFeat }`. `tools/book_import/sheet_to_2024.py` lists what changes for the three sample characters (written to `reports/`, never committed).
