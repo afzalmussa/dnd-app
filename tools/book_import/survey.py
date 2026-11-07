@@ -11,7 +11,7 @@ import ocr
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def survey(book, redo=False, first=1, last=None):
+def survey(book, redo=False, first=1, last=None, force_ocr=()):
     books = json.loads((Path(__file__).parent / "books.json").read_text(encoding="utf-8"))
     if book not in books:
         sys.exit(f"Unknown book '{book}'. Allowed: {', '.join(books)}")
@@ -20,14 +20,15 @@ def survey(book, redo=False, first=1, last=None):
     cache = ROOT / "ocr-cache"
     t0 = time.time()
     for n in range(first, last + 1):
-        if not redo and ocr.read_cache(cache, book, n):
+        cached = ocr.read_cache(cache, book, n)
+        if cached and not redo and not (n in force_ocr and cached["method"] != "ocr"):
             continue
         page = doc[n - 1]
         text = layer_text(page)
         score = score_text(text)
         method = "text-layer"
         columns = column_text(page)  # prose reads better column by column; tables use `text`
-        if needs_ocr(score):
+        if needs_ocr(score) or n in force_ocr:  # force_ocr: pages whose text layer lacks headings that are drawn as images
             text, method = ocr.ocr_page(page), "ocr"
             columns = text  # Tesseract already separates columns
         ocr.write_cache(cache, book, n, {"page": n, "method": method, "layer_score": score, "text": text, "text_columns": columns})

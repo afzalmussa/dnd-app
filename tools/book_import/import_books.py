@@ -14,11 +14,13 @@ import pymupdf
 
 import survey
 from parsers.classes import parse_class
+from parsers.backgrounds import parse_backgrounds
+from parsers.equipment import parse_armor, parse_weapons
 from parsers.origins import parse_feats, parse_species
 from parsers.spells import parse_spells
 from parsers.subclasses import parse_subclasses
-from report import feat_section, species_section, subclass_section, write_report
-from validate import compare_caster_slots, validate_class, validate_feat, validate_species, validate_subclass, validate_spell
+from report import background_section, feat_section, item_section, species_section, subclass_section, write_report
+from validate import compare_caster_slots, validate_background, validate_class, validate_feat, validate_item, validate_species, validate_subclass, validate_spell
 
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).parent
@@ -36,12 +38,12 @@ def main():
     book = books[args.book]
     sections = json.loads((HERE / "sections.json").read_text(encoding="utf-8")).get(args.book, {})
     kind, _, names = (args.only or "").partition(":")
-    if kind not in ("", "classes", "spells", "feats", "species", "subclasses"):
-        sys.exit("Implemented so far: classes, subclasses, spells, feats, species.")
+    if kind not in ("", "classes", "spells", "feats", "species", "subclasses", "backgrounds", "equipment"):
+        sys.exit("Implemented so far: classes, subclasses, spells, feats, species, backgrounds, equipment.")
     wanted = [n for n in names.split(",") if n] if kind == "classes" else []
     wanted = wanted or (list(sections.get("classes", {})) if kind in ("", "classes") else [])
 
-    survey.survey(args.book)  # skips pages already cached
+    survey.survey(args.book, force_ocr=set(sections.get("force_ocr", [])))  # skips pages already cached
     doc = pymupdf.open(ROOT / "PDFs" / book["file"])
     known_skills = [s["name"] for s in json.loads((ROOT / "app/src/shared/coreRules.json").read_text(encoding="utf-8"))["skills"]]
 
@@ -77,6 +79,28 @@ def main():
         (out_dir := ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
         (out_dir / "species.json").write_text(json.dumps(species, indent=1, ensure_ascii=False), encoding="utf-8")
         print(f"Species: {len(species)} parsed, {sum(1 for s in species if s['source']['flags'] or sp_p[s['id']])} flagged")
+
+    if kind in ("", "backgrounds") and "backgrounds" in sections:
+        feat_pairs = [(f["id"], f["name"]) for f in feats] or [
+            (f["id"], f["name"]) for f in json.loads((ROOT / "data-pack" / args.book / "feats.json").read_text(encoding="utf-8"))]
+        bgs, b_fixes = parse_backgrounds(ROOT / "ocr-cache", args.book, book["ruleset"], sections["backgrounds"]["first"], sections["backgrounds"]["last"], feat_pairs, doc)
+        fixes += b_fixes
+        bp = {b["id"]: validate_background(b) for b in bgs}
+        extras.append(background_section(bgs, bp))
+        (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
+        (ROOT / "data-pack" / args.book / "backgrounds.json").write_text(json.dumps(bgs, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"Backgrounds: {len(bgs)} parsed, {sum(1 for b in bgs if b['source']['flags'] or bp[b['id']])} flagged")
+    if kind in ("", "equipment") and "equipment" in sections:
+        damage_types = {(d["name"] if isinstance(d, dict) else d).lower() for d in json.loads((ROOT / "app/src/shared/coreRules.json").read_text(encoding="utf-8"))["damageTypes"]}
+        items = []
+        w, w_fixes, w_err = parse_weapons(doc, ROOT / "ocr-cache", args.book, book["ruleset"], sections["equipment"]["weapons"], damage_types)
+        a, a_fixes, a_err = parse_armor(doc, ROOT / "ocr-cache", args.book, book["ruleset"], sections["equipment"]["armor"])
+        items, fixes = w + a, fixes + w_fixes + a_fixes
+        ip = {i["id"]: validate_item(i) for i in items}
+        extras.append("".join(f"<p class='bad'>{e}</p>" for e in w_err + a_err) + item_section(items, ip))
+        (ROOT / "data-pack" / args.book).mkdir(parents=True, exist_ok=True)
+        (ROOT / "data-pack" / args.book / "items.json").write_text(json.dumps(items, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(f"Weapons and armor: {len(items)} parsed, {sum(1 for i in items if i['source']['flags'] or ip[i['id']])} flagged")
 
     if classes and kind in ("", "classes", "subclasses"):
         subs, sub_problems, top = [], {}, []

@@ -1,6 +1,9 @@
 {
   "_note": "PDF page numbers (as the PDF viewer shows them) for each class. Read from the page survey, not from memory. 'table' is the page with the class features table.",
   "phb24": {
+    "force_ocr": [176, 177, 178, 179, 180, 181, 182, 183, 184],
+    "backgrounds": {"first": 176, "last": 184},
+    "equipment": {"weapons": 214, "armor": 218},
     "spells": {"first": 236, "last": 346},
     "feats": {"first": 199, "last": 210},
     "species": {"first": 185, "last": 197},

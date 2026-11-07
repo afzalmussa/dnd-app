@@ -126,3 +126,28 @@ def subclass_section(subs, problems_by_id):
                        + (f" <span class='bad'>{esc('; '.join(ff))}</span>" if ff else "") + f"</summary><p>{esc(f['text'])}</p></details>")
         out.append("</section>")
     return "\n".join(out)
+
+
+def background_section(bgs, problems_by_id):
+    def flags(b):
+        return b["source"]["flags"] + problems_by_id.get(b["id"], [])
+    out = [f"<h1>Backgrounds ({len(bgs)})</h1>", "<table><tr><th>Name</th><th>Page</th><th>Abilities</th><th>Origin feat</th><th>Skills</th><th>Tool</th><th>Equipment</th><th>Flags</th></tr>"]
+    for b in sorted(bgs, key=lambda b: (not flags(b), b["source"]["page"] or 0)):
+        feat = (b["originFeatId"] or "") + (f" ({b['originFeatChoice']})" if b["originFeatChoice"] else "")
+        out.append(f"<tr class='{'flagged' if flags(b) else ''}'><td>{esc(b['name'])}</td><td>{esc(b['source']['page'])}</td><td>{esc(', '.join(b['abilityOptions']))}</td>"
+                   f"<td>{esc(feat)}</td><td>{esc(', '.join(b['skillProficiencies']))}</td><td>{esc(b['toolProficiency'])}</td><td>{esc(b['equipment'])}</td>"
+                   f"<td class='bad'>{esc('; '.join(flags(b)))}</td></tr>")
+    out.append("</table>")
+    return "\n".join(out)
+
+
+def item_section(items, problems_by_id):
+    def flags(i):
+        return i["source"]["flags"] + problems_by_id.get(i["id"], [])
+    out = [f"<h1>Weapons and armor ({len(items)})</h1>", "<table><tr><th>Name</th><th>Page</th><th>Kind</th><th>Details</th><th>Weight</th><th>Cost</th><th>Flags</th></tr>"]
+    for i in sorted(items, key=lambda i: (not flags(i), i["source"]["page"] or 0)):
+        d = i.get("weapon") or i.get("armor")
+        out.append(f"<tr class='{'flagged' if flags(i) else ''}'><td>{esc(i['name'])}</td><td>{esc(i['source']['page'])}</td><td>{esc(i['category'])}</td>"
+                   f"<td>{esc(json.dumps(d))}</td><td>{esc(i['weight'])}</td><td>{esc(i['cost'])}</td><td class='bad'>{esc('; '.join(flags(i)))}</td></tr>")
+    out.append("</table>")
+    return "\n".join(out)

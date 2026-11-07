@@ -102,3 +102,34 @@ def validate_subclass(sub, cls):
     for lvl in sorted(set(g for g in got if g is not None) - expected):
         problems.append(f"feature at level {lvl}, but the {cls['name']} table has no subclass feature there")
     return problems
+
+
+MASTERY_NAMES = {"Cleave", "Graze", "Nick", "Push", "Sap", "Slow", "Topple", "Vex"}
+
+
+def validate_background(b):
+    problems = []
+    if b["originFeatId"] is None:
+        problems.append("origin feat not matched to an imported feat")
+    if not b["toolProficiency"]:
+        problems.append("tool proficiency empty")
+    return problems
+
+
+def validate_item(item):
+    """Weapons need damage, mastery and a known mastery name; armor needs an armor class."""
+    problems = []
+    if item["category"] == "weapon":
+        w = item["weapon"]
+        if w["mastery"] and w["mastery"] not in MASTERY_NAMES:
+            problems.append(f"mastery '{w['mastery']}' is not one of the eight mastery properties")
+        if not w["group"]:
+            problems.append("weapon category (Simple or Martial) not found")
+    elif item["category"] == "armor":
+        if item["armor"]["baseAC"] is None:
+            problems.append("armor class not read")
+        if not item["armor"]["armorType"]:
+            problems.append("armor category not found")
+    if not item["cost"]:
+        problems.append("cost empty")
+    return problems
