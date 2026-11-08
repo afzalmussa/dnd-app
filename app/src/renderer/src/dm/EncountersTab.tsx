@@ -62,12 +62,24 @@ function EnemyPicker({ monsters, onPick }: { monsters: MonsterStats[]; onPick: (
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const matches = useMemo(() => {
+    // Every word typed must appear somewhere in the name, type or "cr N", in any order: "adult dragon" finds "Adult Red Dragon".
     const q = query.trim().toLowerCase()
+    const words = q.split(/\s+/).filter(Boolean)
+    const crQuery = q.match(/^cr\s*(\S+)$/)?.[1]
     return monsters
-      .filter((m) => !q || m.name.toLowerCase().includes(q) || m.creatureType.toLowerCase().includes(q) || `cr ${m.cr}` === q)
+      .filter((m) => {
+        if (crQuery) return String(m.cr) === crQuery
+        const hay = `${m.name} ${m.creatureType} ${m.size}`.toLowerCase()
+        return words.every((w) => hay.includes(w))
+      })
       .sort((a, b) => Number(b.name.toLowerCase().startsWith(q)) - Number(a.name.toLowerCase().startsWith(q)) || crValue(a.cr) - crValue(b.cr) || a.name.localeCompare(b.name))
-      .slice(0, 14)
   }, [monsters, query])
+  // The list is fixed to the screen under the search box, so no part of the page can cut it off.
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({})
+  function place() {
+    const r = box.current?.querySelector('input')?.getBoundingClientRect()
+    if (r) setMenuStyle({ left: r.left, top: r.bottom + 4, maxHeight: window.innerHeight - r.bottom - 16 })
+  }
   useEffect(() => {
     const close = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
     document.addEventListener('mousedown', close)
@@ -76,11 +88,11 @@ function EnemyPicker({ monsters, onPick }: { monsters: MonsterStats[]; onPick: (
   return (
     <div className="enemy-picker" ref={box}>
       <input type="text" className="text-input" placeholder="Add enemy: type a name, type or 'cr 5'…" value={query}
-        onFocus={() => setOpen(true)} onChange={(e) => { setQuery(e.target.value); setOpen(true) }} />
+        onFocus={() => { place(); setOpen(true) }} onChange={(e) => { setQuery(e.target.value); place(); setOpen(true) }} />
       <span className="muted small">×</span>
       <NumberInput value={count} min={1} onChange={setCount} />
       {open && matches.length > 0 && (
-        <div className="enemy-menu">
+        <div className="enemy-menu" style={menuStyle}>
           {matches.map((m) => (
             <button key={m.id} className="link-row" onClick={() => { onPick(m, Math.max(1, count ?? 1)); setQuery(''); setOpen(false) }}>
               <span className="chip">CR {m.cr}</span> {m.name} <span className="muted small">{m.creatureType} · AC {m.ac} · HP {m.hp?.average}</span>
