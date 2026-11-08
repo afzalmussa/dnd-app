@@ -385,8 +385,8 @@ strong.low { color: #ff4d4d; }
 .ability-chips { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem; }
 .ability-chip { position: relative; display: inline-block; padding: 0 0.45rem; border: 1px solid #5a3a3a; border-radius: 10px; font-size: 0.85em; cursor: help; background: #231a1b; }
 .ability-chip.kind-actions { border-color: #8b2a2a; } .ability-chip.kind-legendaryActions { border-color: #e0b050; }
-.ability-popup { display: none; position: absolute; left: 0; top: 1.5rem; z-index: 90; width: 26rem; max-width: 70vw; padding: 0.6rem 0.8rem; background: #1d1416; border: 1px solid #8b2a2a; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); font-weight: normal; }
-.ability-chip:hover .ability-popup { display: block; } .ability-text { display: block; margin-top: 0.3rem; }
+.ability-popup { position: fixed; z-index: 90; overflow-y: auto; pointer-events: none; padding: 0.6rem 0.8rem; background: #1d1416; border: 1px solid #8b2a2a; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,0.6); font-weight: normal; }
+.ability-text { display: block; margin-top: 0.3rem; }
 .enemy-picker { position: relative; display: inline-flex; gap: 0.4rem; align-items: center; } .enemy-picker .text-input { width: 22rem; }
 .enemy-menu { position: absolute; top: 2rem; left: 0; z-index: 95; width: 36rem; max-width: 90vw; max-height: 22rem; overflow-y: auto; background: #1d1416; border: 1px solid #8b2a2a; border-radius: 6px; }
 

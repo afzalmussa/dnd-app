@@ -2,7 +2,7 @@
 // One compact line per creature. Enemy abilities are chips; hover one to read what it does.
 // There are no roll buttons: the DM rolls their own dice.
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import { CONDITIONS } from '../../../shared/coreRules'
 import {
   addMonsters, addPlayer, changeHp, emptyEncounter, nextTurn, removeCombatant, totalXp, turnOrder,
@@ -25,18 +25,32 @@ function passive(senses: string | null): string {
 }
 
 // A chip for each ability; the description appears on hover so it takes no room on the page.
+// The description is drawn at a fixed screen position beside the chip, so the table never cuts it off:
+// below the chip, or above it when there is no room below, and kept inside the window sideways.
 function AbilityChips({ m }: { m: MonsterStats }) {
+  const [tip, setTip] = useState<{ key: string; name: string; kind: string; text: string; style: CSSProperties } | null>(null)
+  function show(e: ReactMouseEvent<HTMLElement>, key: string, name: string, kind: string, text: string) {
+    const r = e.currentTarget.getBoundingClientRect()
+    const width = Math.min(416, window.innerWidth - 16)
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8))
+    const below = window.innerHeight - r.bottom
+    const style: CSSProperties = below >= 260 || below >= r.top ? { left, top: r.bottom + 4, width, maxHeight: Math.max(120, below - 12) } : { left, bottom: window.innerHeight - r.top + 4, width, maxHeight: Math.max(120, r.top - 12) }
+    setTip({ key, name, kind, text, style })
+  }
   return (
     <span className="ability-chips">
       {SECTION_ORDER.flatMap((key) => (m.sections[key] ?? []).filter((e) => e.name).map((e, i) => (
-        <span key={`${key}${i}`} className={`ability-chip kind-${key}`}>
+        <span key={`${key}${i}`} className={`ability-chip kind-${key}`}
+          onMouseEnter={(ev) => show(ev, `${key}${i}`, e.name, SECTION_TITLES[key], e.text)} onMouseLeave={() => setTip(null)}>
           {e.name}
-          <span className="ability-popup" role="tooltip">
-            <strong>{e.name}</strong> <span className="muted small">{SECTION_TITLES[key]}</span>
-            <span className="ability-text">{e.text}</span>
-          </span>
         </span>
       )))}
+      {tip && (
+        <span className="ability-popup" role="tooltip" style={tip.style}>
+          <strong>{tip.name}</strong> <span className="muted small">{tip.kind}</span>
+          <span className="ability-text">{tip.text}</span>
+        </span>
+      )}
     </span>
   )
 }
@@ -142,7 +156,7 @@ export function EncountersTab() {
           <strong className={pct <= 25 ? 'low' : ''}>{c.hp}</strong>/{c.hpMax}
           <div className="hpbar enemy"><div style={{ width: `${pct}%` }} /></div>
           <div className="hp-controls">
-            <NumberInput value={amounts[c.id] ?? null} min={0} placeholder="amt" onChange={(v) => setAmounts({ ...amounts, [c.id]: v })} />
+            <NumberInput value={amounts[c.id] ?? null} min={0} placeholder="amount" onChange={(v) => setAmounts({ ...amounts, [c.id]: v })} />
             <button className="small danger" onClick={() => { setState(changeHp(state, c.id, -(amounts[c.id] ?? 0))); setAmounts({ ...amounts, [c.id]: null }) }}>Dmg</button>
             <button className="small good" onClick={() => { setState(changeHp(state, c.id, amounts[c.id] ?? 0)); setAmounts({ ...amounts, [c.id]: null }) }}>Heal</button>
           </div>
