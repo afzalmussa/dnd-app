@@ -61,7 +61,15 @@ export interface FeatInfo {
 export type ContentKind = 'spell' | 'feat' | 'item' | 'class' | 'subclass' | 'species' | 'background' | 'monster'
 export type ContentOrigin = 'book' | 'edited' | 'user'
 
-export type FolderKey = 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder' | 'privateFolder' | 'audioFolder'
+export type FolderKey = 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder' | 'privateFolder' | 'audioFolder' | 'backupFolder'
+
+export interface BackupSummary {
+  file: string
+  files: number
+  bytes: number
+  removed: number // older backups deleted to keep the newest 15
+  at: string
+}
 
 export interface SoundInfo {
   id: string
@@ -83,6 +91,8 @@ export interface AppSettings {
   privateFolder: string
   playerFolders: Record<string, string>
   audioFolder: string
+  backupFolder: string // empty until chosen
+  lastBackup: string | null
 }
 
 export interface PublishSummary {
@@ -110,6 +120,7 @@ export interface Campaign {
 export interface AppApi {
   // Monsters from the Monster Manual (and your own), for the DM's encounter tools.
   listMonsters(): Promise<Record<string, any>[]>
+  runBackup(): Promise<BackupSummary>
   listSounds(): Promise<SoundInfo[]>
   youtubeTitle(url: string): Promise<string | null>
   getSettings(): Promise<AppSettings>

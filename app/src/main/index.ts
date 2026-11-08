@@ -20,6 +20,7 @@ import { deleteUserEntry, saveUserEntry, type ContentKind } from './userContent'
 import { getCampaign, listParty, setCampaign } from './party'
 import { getSaveFolder, loadSettings, saveSettings } from './settings'
 import { PLAYER_EDITION } from './edition'
+import { backupIfDue, runBackup } from './backup'
 import { listSounds, safeAudioPath, youtubeTitle } from './audio'
 import type { FolderKey } from '../shared/api'
 import * as wiki from './wikiFiles'
@@ -116,6 +117,7 @@ function registerHandlers(): void {
   ipcMain.handle('wikiTrash', (_e, area, path) => wiki.trashPage(area, path))
   ipcMain.handle('wikiPages', (_e, area) => wiki.allPagesWithText(area))
   ipcMain.handle('listMonsters', () => mergedContent('monster'))
+  ipcMain.handle('runBackup', () => runBackup())
   ipcMain.handle('listSounds', () => listSounds())
   ipcMain.handle('youtubeTitle', (_e, url: string) => youtubeTitle(url))
   ipcMain.handle('listItems', () => listItems())
@@ -194,6 +196,7 @@ app.whenReady().then(() => {
     })
   }
   registerHandlers()
+  backupIfDue()
   const window = createWindow()
   wiki.startWatching(window)
 })

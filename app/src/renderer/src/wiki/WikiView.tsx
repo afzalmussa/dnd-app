@@ -21,7 +21,7 @@ function flatten(nodes: WikiTreeNode[]): string[] {
   return nodes.flatMap((n) => (n.type === 'file' ? [n.path] : flatten(n.children ?? [])))
 }
 
-export function WikiView({ onClose }: { onClose: () => void }) {
+export function WikiView({ onClose, onPopOut }: { onClose: () => void; onPopOut?: () => void }) {
   const [trees, setTrees] = useState<Record<WikiArea, WikiTreeNode[] | null>>({ notes: null, party: null, private: null })
   const [texts, setTexts] = useState<Record<WikiArea, { path: string; text: string }[]>>({ notes: [], party: [], private: [] })
   const [open, setOpen] = useState<Open | null>(null)
@@ -135,6 +135,34 @@ export function WikiView({ onClose }: { onClose: () => void }) {
         try { await window.api.wikiCreatePage(area, path, `# ${name.replace(/\.md$/i, '')}\n`); await reload(); await openPage(area, path); setEditing(true) } catch (e) { setStatus((e as Error).message) }
       }
     })
+  }
+
+  // A dated page in My Notes / Sessions for what happened this session, with a share block for the players.
+  async function newRecap() {
+    const number = pagesByArea.notes.filter((p) => p.startsWith('Sessions/')).length + 1
+    const date = new Date().toISOString().slice(0, 10)
+    const path = `Sessions/${date} Session ${number}.md`
+    const body = `# Session ${number}: ${date}
+
+## Summary
+
+
+## What happened
+
+
+## NPCs and places
+
+
+## Loot and XP
+
+
+## Open threads / next time
+
+
+> [!share] Session ${number} recap
+> Write here what the players should read.
+`
+    try { await window.api.wikiCreatePage('notes', path, body); await reload(); await openPage('notes', path); setEditing(true) } catch (e) { setStatus((e as Error).message) }
   }
 
   function newFolder(area: WikiArea) {
@@ -273,6 +301,7 @@ export function WikiView({ onClose }: { onClose: () => void }) {
       <div className="wiki-bar">
         <strong>Wiki</strong>
         <button className="small" disabled={readOnly} onClick={() => newPage(open?.area ?? 'notes')}>New page</button>
+        <button className="small" onClick={() => void newRecap()} title="A dated page in My Notes / Sessions for this session's recap, loot and XP">New session recap</button>
         <button className="small" disabled={readOnly} onClick={() => newFolder(open?.area ?? 'notes')}>New folder</button>
         <button className="small" disabled={!open || readOnly} onClick={renamePage}>Rename</button>
         <button className="small danger" disabled={!open || readOnly} onClick={deletePage}>Delete</button>
@@ -281,7 +310,8 @@ export function WikiView({ onClose }: { onClose: () => void }) {
         <button className="small" disabled={!open} onClick={copyForWhatsApp} title="Copy the shared text so you can paste it into WhatsApp">Copy for WhatsApp</button>
         <button className="small" onClick={() => void reload()}>Refresh</button>
         <span className="muted small wiki-status">{dirty ? 'Unsaved…' : status}</span>
-        <button className="small" onClick={onClose}>Back to the sheet</button>
+        {onPopOut && <button className="small" onClick={onPopOut} title="Open the wiki in its own window">Pop out</button>}
+        <button className="small" onClick={onClose}>{onPopOut ? 'Back to the sheet' : 'Close window'}</button>
       </div>
       <div className="wiki-body">
         <aside className="wiki-tree">

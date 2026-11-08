@@ -18,3 +18,5 @@ __pycache__/
 survey-*.log
 app/release-player/
 audio/
+test-results/
+playwright-report/

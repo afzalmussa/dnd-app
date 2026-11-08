@@ -17,6 +17,8 @@ export interface Settings {
   privateFolder: string // "From the DM": a folder only this player can see, where the DM publishes their secrets
   playerFolders: Record<string, string> // DM only: player name -> that player's private folder
   audioFolder: string // DM only: the sound library
+  backupFolder: string // where backup zips go (empty until chosen)
+  lastBackup: string | null
 }
 
 function settingsPath(): string {
@@ -31,7 +33,7 @@ function devAudioFolder(): string | null {
 
 function defaults(): Settings {
   const saveFolder = join(app.getPath('userData'), 'characters')
-  return { saveFolder, contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', dmFolder: saveFolder, notesFolder: join(app.getPath('userData'), 'notes'), partyWikiFolder: '', privateFolder: '', playerFolders: {}, audioFolder: devAudioFolder() ?? join(app.getPath('userData'), 'audio') }
+  return { saveFolder, contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', dmFolder: saveFolder, notesFolder: join(app.getPath('userData'), 'notes'), partyWikiFolder: '', privateFolder: '', playerFolders: {}, backupFolder: '', lastBackup: null, audioFolder: devAudioFolder() ?? join(app.getPath('userData'), 'audio') }
 }
 
 export function loadSettings(): Settings {

@@ -38,6 +38,7 @@ export default function App() {
   const [showParty, setShowParty] = useState(false)
   const [showEncounters, setShowEncounters] = useState(false)
   const [showSound, setShowSound] = useState(false)
+  const [wikiPopped, setWikiPopped] = useState(false) // the wiki is in its own window
   const [role, setRole] = useState<'player' | 'dm'>('player')
   const refreshRole = () => { void window.api.getSettings().then((s) => setRole(s.role)) }
   useEffect(refreshRole, [])
@@ -198,6 +199,11 @@ export default function App() {
 
   return (
     <div className="app">
+      {wikiPopped && (
+        <PopoutWindow name="wiki" title="Wiki" size="width=1100,height=800" onClose={() => setWikiPopped(false)}>
+          <WikiView onClose={() => setWikiPopped(false)} />
+        </PopoutWindow>
+      )}
       {showEditor && <ContentEditor onClose={() => setShowEditor(false)} />}
       {showParty && !PLAYER_EDITION && <Suspense fallback={null}><PartyView onClose={() => setShowParty(false)} /></Suspense>}
       {showSettings && <SettingsDialog onClose={() => setShowSettings(false)} onChanged={refreshRole} />}
@@ -206,7 +212,7 @@ export default function App() {
         <button onClick={() => setShowPicker(true)}>Characters</button>
         <button onClick={exportFile} disabled={!character}>Export</button>
         <button onClick={importFile}>Import</button>
-        <button className={showWiki ? 'active' : ''} onClick={() => { setShowWiki(!showWiki); setShowEncounters(false); setShowSound(false) }} title="Your story notes and the party wiki">Wiki</button>
+        <button className={showWiki || wikiPopped ? 'active' : ''} onClick={() => { if (wikiPopped) setWikiPopped(false); else setShowWiki(!showWiki); setShowEncounters(false); setShowSound(false) }} title="Your story notes and the party wiki">Wiki</button>
         {role === 'dm' && !PLAYER_EDITION && <button className={showEncounters ? 'active' : ''} onClick={() => { setShowEncounters(!showEncounters); setShowWiki(false); setShowSound(false) }} title="The party's health and the enemies in the fight">Encounters</button>}
         {role === 'dm' && !PLAYER_EDITION && <button className={showSound ? 'active' : ''} onClick={() => { setShowSound(!showSound); setShowWiki(false); setShowEncounters(false) }} title="Sound effects, ambience and music">Sound</button>}
         {role === 'dm' && !PLAYER_EDITION && <button onClick={() => setShowParty(true)} title="All party sheets at a glance (read-only)">DM view</button>}
@@ -240,7 +246,7 @@ export default function App() {
         </div>
       )}
 
-      {showSound && role === 'dm' && !PLAYER_EDITION ? <Suspense fallback={null}><SoundboardTab /></Suspense> : showEncounters && role === 'dm' && !PLAYER_EDITION ? <Suspense fallback={null}><EncountersTab /></Suspense> : showWiki ? <WikiView onClose={() => setShowWiki(false)} /> : (
+      {showSound && role === 'dm' && !PLAYER_EDITION ? <Suspense fallback={null}><SoundboardTab /></Suspense> : showEncounters && role === 'dm' && !PLAYER_EDITION ? <Suspense fallback={null}><EncountersTab /></Suspense> : showWiki ? <WikiView onClose={() => setShowWiki(false)} onPopOut={() => { setShowWiki(false); setWikiPopped(true) }} /> : (
       <div ref={workspace} className={`workspace dock-${dock}`}>
         <main className="main">
           {context ? (

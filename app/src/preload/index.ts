@@ -6,6 +6,7 @@ import type { AppApi } from '../shared/api'
 
 const api: AppApi = {
   listMonsters: () => ipcRenderer.invoke('listMonsters'),
+  runBackup: () => ipcRenderer.invoke('runBackup'),
   listSounds: () => ipcRenderer.invoke('listSounds'),
   youtubeTitle: (url) => ipcRenderer.invoke('youtubeTitle', url),
   wikiPublish: (scope, path) => ipcRenderer.invoke('wikiPublish', scope, path),

@@ -1,4 +1,4 @@
-// Shows its children in a separate window (used for the popped-out roll log).
+// Shows its children in a separate window (used for the popped-out roll log and wiki).
 //
 // How it works: window.open('') makes an empty window that belongs to this
 // app, and React's createPortal draws part of our page into it. The log in
@@ -8,11 +8,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
-export function PopoutWindow(props: { title: string; onClose: () => void; children: ReactNode }) {
+export function PopoutWindow(props: { title: string; name?: string; size?: string; onClose: () => void; children: ReactNode }) {
   const [container, setContainer] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
-    const popup = window.open('', 'roll-log', 'width=560,height=640')
+    const popup = window.open('', props.name ?? 'roll-log', props.size ?? 'width=560,height=640')
     if (!popup) {
       props.onClose()
       return
