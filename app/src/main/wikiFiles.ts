@@ -3,8 +3,8 @@
 // relative and checked, the same approach as character files. See docs/wiki-design.md.
 
 import { BrowserWindow, shell } from 'electron'
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, watch, writeFileSync, type FSWatcher } from 'node:fs'
-import { dirname, join, resolve, sep } from 'node:path'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, watch, writeFileSync, type FSWatcher } from 'node:fs'
+import { dirname, extname, join, resolve, sep } from 'node:path'
 import type { WikiPage, WikiTreeNode, WriteResult } from '../shared/api'
 import { isSafeRelativePath, rewriteLinksOnRename, type Area } from '../shared/wiki/wiki'
 import { loadSettings } from './settings'
@@ -178,4 +178,43 @@ export function findAttachment(area: Area, relative: string): string | null {
   entry = { at: Date.now(), byName }
   imageIndex.set(area, entry)
   return lookup(entry)
+}
+
+// "Make a copy": the file or folder is copied beside itself as "Name 1", "Name 2"... Returns the new path.
+export function copyEntry(area: Area, relative: string): string {
+  writable(area)
+  const from = safePath(area, relative)
+  const isDir = statSync(from).isDirectory()
+  const ext = isDir ? '' : extname(relative)
+  const stem = ext ? relative.slice(0, -ext.length) : relative
+  let n = 1
+  while (existsSync(safePath(area, `${stem} ${n}${ext}`))) n += 1
+  const target = `${stem} ${n}${ext}`
+  cpSync(from, safePath(area, target), { recursive: true })
+  return target
+}
+
+// Moves or renames a file (links to it are rewritten) or a folder. Returns the pages whose links changed.
+export function moveEntry(area: Area, relative: string, newRelative: string): string[] {
+  writable(area)
+  const from = safePath(area, relative)
+  if (!statSync(from).isDirectory()) return renamePage(area, relative, newRelative)
+  if (newRelative === relative || newRelative.startsWith(`${relative}/`)) throw new Error('A folder cannot be moved into itself.')
+  const to = safePath(area, newRelative)
+  if (existsSync(to)) throw new Error('A folder with that name already exists there.')
+  mkdirSync(dirname(to), { recursive: true })
+  renameSync(from, to)
+  return []
+}
+
+export function revealEntry(area: Area, relative: string): void {
+  shell.showItemInFolder(safePath(area, relative))
+}
+
+export async function openEntry(area: Area, relative: string): Promise<void> {
+  await shell.openPath(safePath(area, relative))
+}
+
+export function fullPath(area: Area, relative: string): string {
+  return safePath(area, relative)
 }

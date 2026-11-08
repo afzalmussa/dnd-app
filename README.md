@@ -127,3 +127,5 @@ The sounds are files in the sound folder (Settings, "The sound library"; while d
 
 - **Music folders:** Settings, "Music folders" (DM): add one folder per kind of music (Battle, Town, Field, Dungeon, Tavern…) and put mp3 files in each. They appear on the Sound tab under Streaming music, grouped by folder. Press Play on a song and the rest of that folder follows; the bar has previous / next, 10-second jumps, a slider and Shuffle.
 - **Adverts:** YouTube plays in a hidden window that is not signed in, so it can show adverts. On the Streaming music tab press **Sign in to YouTube** and sign in with your own Premium account in the window that opens; the sign-in is remembered. Google sometimes refuses sign-ins from desktop apps; if it does, use the music folders instead.
+
+**Wiki right-click menu:** right-click a folder or page in the wiki tree for: New note / New folder (in that folder), Make a copy, Move to…, Search in folder, Copy path (in the wiki, or on this PC), Open in default app, Show in system explorer, Rename and Delete (to the Recycle Bin). Obsidian's tabs, canvas, base and bookmark entries are not in this wiki.

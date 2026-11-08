@@ -175,6 +175,11 @@ export interface AppApi {
   wikiCreateFolder(area: WikiArea, path: string): Promise<void>
   wikiRename(area: WikiArea, path: string, newPath: string): Promise<string[]>
   wikiTrash(area: WikiArea, path: string): Promise<void>
+  wikiCopy(area: WikiArea, path: string): Promise<string>
+  wikiMove(area: WikiArea, path: string, newPath: string): Promise<string[]>
+  wikiReveal(area: WikiArea, path: string): Promise<void>
+  wikiOpenExternal(area: WikiArea, path: string): Promise<void>
+  wikiFullPath(area: WikiArea, path: string): Promise<string>
   wikiPages(area: WikiArea): Promise<{ path: string; text: string }[]>
   onWikiChanged(callback: (area: WikiArea) => void): () => void
   setRole(role: 'player' | 'dm'): Promise<AppSettings>

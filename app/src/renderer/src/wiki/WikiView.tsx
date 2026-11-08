@@ -34,6 +34,15 @@ export function WikiView({ onClose, onPopOut }: { onClose: () => void; onPopOut?
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [ask, setAsk] = useState<Ask | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; area: WikiArea; node: WikiTreeNode } | null>(null)
+  const [moving, setMoving] = useState<{ area: WikiArea; node: WikiTreeNode; target: string } | null>(null)
+  const [searchIn, setSearchIn] = useState<{ area: WikiArea; path: string } | null>(null)
+  useEffect(() => {
+    if (!menu) return
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(null) }
+    window.addEventListener('keydown', esc)
+    return () => window.removeEventListener('keydown', esc)
+  }, [menu])
   const readRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<HTMLTextAreaElement>(null)
   const [role, setRole] = useState<'player' | 'dm'>('player')
@@ -126,11 +135,11 @@ export function WikiView({ onClose, onPopOut }: { onClose: () => void; onPopOut?
 
   const folderForNew = open ? open.path.split('/').slice(0, -1).join('/') : ''
 
-  function newPage(area: WikiArea) {
+  function newPage(area: WikiArea, folder?: string) {
     setAsk({
       title: `New page in ${area === 'notes' ? 'My Notes' : 'Party Wiki'}${folderForNew && open?.area === area ? ` / ${folderForNew}` : ''}`, value: '',
       confirm: async (name) => {
-        const dir = open?.area === area ? folderForNew : ''
+        const dir = folder ?? (open?.area === area ? folderForNew : '')
         const path = `${dir ? `${dir}/` : ''}${name.replace(/\.md$/i, '')}.md`
         try { await window.api.wikiCreatePage(area, path, `# ${name.replace(/\.md$/i, '')}\n`); await reload(); await openPage(area, path); setEditing(true) } catch (e) { setStatus((e as Error).message) }
       }
@@ -165,42 +174,95 @@ export function WikiView({ onClose, onPopOut }: { onClose: () => void; onPopOut?
     try { await window.api.wikiCreatePage('notes', path, body); await reload(); await openPage('notes', path); setEditing(true) } catch (e) { setStatus((e as Error).message) }
   }
 
-  function newFolder(area: WikiArea) {
+  function newFolder(area: WikiArea, folder?: string) {
     setAsk({
       title: 'New folder', value: '',
       confirm: async (name) => {
-        const dir = open?.area === area ? folderForNew : ''
+        const dir = folder ?? (open?.area === area ? folderForNew : '')
         try { await window.api.wikiCreateFolder(area, `${dir ? `${dir}/` : ''}${name}`); await reload() } catch (e) { setStatus((e as Error).message) }
       }
     })
   }
 
-  function renamePage() {
-    if (!open) return
-    const current = open
-    const base = current.path.split('/').pop()!.replace(/\.md$/i, '')
+  const fileNode = (path: string): WikiTreeNode => ({ type: 'file', path, name: path.split('/').pop()!.replace(/\.md$/i, '') })
+  const parentOf = (path: string) => path.split('/').slice(0, -1).join('/')
+
+  // Rename a page (links to it are updated) or a folder.
+  function renameNode(area: WikiArea, node: WikiTreeNode) {
+    const isFolder = node.type === 'folder'
     setAsk({
-      title: 'Rename page (links to it are updated)', value: base,
+      title: isFolder ? 'Rename folder' : 'Rename page (links to it are updated)', value: node.name,
       confirm: async (name) => {
-        const dir = current.path.split('/').slice(0, -1).join('/')
-        const next = `${dir ? `${dir}/` : ''}${name.replace(/\.md$/i, '')}.md`
+        const dir = parentOf(node.path)
+        const next = `${dir ? `${dir}/` : ''}${isFolder ? name : `${name.replace(/\.md$/i, '')}.md`}`
         try {
-          const changed = await window.api.wikiRename(current.area, current.path, next)
+          const changed = await window.api.wikiMove(area, node.path, next)
           setStatus(changed.length ? `Renamed. Links updated in: ${changed.join(', ')}` : 'Renamed.')
           await reload()
-          await openPage(current.area, next)
+          if (open?.area === area && open.path === node.path) await openPage(area, next)
+          else if (isFolder && open?.area === area && open.path.startsWith(`${node.path}/`)) await openPage(area, `${next}${open.path.slice(node.path.length)}`)
         } catch (e) { setStatus((e as Error).message) }
       }
     })
   }
 
-  async function deletePage() {
-    if (!open || !confirm(`Move "${open.path}" to the Recycle Bin?`)) return
-    await window.api.wikiTrash(open.area, open.path)
-    setOpen(null)
-    setText('')
+  const renamePage = () => { if (open) renameNode(open.area, fileNode(open.path)) }
+
+  async function deleteNode(area: WikiArea, node: WikiTreeNode) {
+    const what = node.type === 'folder' ? `the folder "${node.path}" and everything in it` : `"${node.path}"`
+    if (!confirm(`Move ${what} to the Recycle Bin?`)) return
+    await window.api.wikiTrash(area, node.path)
+    if (open?.area === area && (open.path === node.path || open.path.startsWith(`${node.path}/`))) { setOpen(null); setText('') }
     await reload()
     setStatus('Moved to the Recycle Bin.')
+  }
+
+  const deletePage = () => { if (open) void deleteNode(open.area, fileNode(open.path)) }
+
+  async function copyNode(area: WikiArea, node: WikiTreeNode) {
+    try { const copy = await window.api.wikiCopy(area, node.path); await reload(); setStatus(`Copied to ${copy}.`) } catch (e) { setStatus((e as Error).message) }
+  }
+
+  async function copyPath(area: WikiArea, node: WikiTreeNode, system: boolean) {
+    await navigator.clipboard.writeText(system ? await window.api.wikiFullPath(area, node.path) : node.path)
+    setStatus('Path copied.')
+  }
+
+  // Every folder in an area, for "Move to...".
+  const foldersOf = (nodes: WikiTreeNode[]): string[] => nodes.flatMap((n) => (n.type === 'folder' ? [n.path, ...foldersOf(n.children ?? [])] : []))
+
+  async function moveNodeTo(area: WikiArea, node: WikiTreeNode, folder: string) {
+    const next = `${folder ? `${folder}/` : ''}${node.path.split('/').pop()}`
+    try {
+      const changed = await window.api.wikiMove(area, node.path, next)
+      setStatus(changed.length ? `Moved. Links updated in: ${changed.join(', ')}` : 'Moved.')
+      await reload()
+      if (open?.area === area && open.path === node.path) await openPage(area, next)
+      else if (node.type === 'folder' && open?.area === area && open.path.startsWith(`${node.path}/`)) await openPage(area, `${next}${open.path.slice(node.path.length)}`)
+    } catch (e) { setStatus((e as Error).message) }
+  }
+
+  // The right-click menu, with the choices Obsidian offers that this wiki can do.
+  type MenuItem = { label: string; icon: string; run: () => void; danger?: boolean; gapBefore?: boolean }
+  function menuItems(area: WikiArea, node: WikiTreeNode): MenuItem[] {
+    const ro = area === 'private'
+    const isFolder = node.type === 'folder'
+    const items: MenuItem[] = []
+    if (isFolder) {
+      if (!ro) items.push({ label: 'New note', icon: '📝', run: () => newPage(area, node.path) }, { label: 'New folder', icon: '📁', run: () => newFolder(area, node.path) })
+    } else {
+      items.push({ label: 'Open', icon: '📄', run: () => void openPage(area, node.path) })
+    }
+    if (!ro) items.push({ label: 'Make a copy', icon: '⧉', run: () => void copyNode(area, node), gapBefore: true },
+      { label: isFolder ? 'Move folder to…' : 'Move file to…', icon: '↦', run: () => setMoving({ area, node, target: parentOf(node.path) }) })
+    if (isFolder) items.push({ label: 'Search in folder', icon: '🔍', run: () => { setSearchIn({ area, path: node.path }); setSearch('') } })
+    items.push({ label: 'Copy path (in the wiki)', icon: '⎘', run: () => void copyPath(area, node, false), gapBefore: true },
+      { label: 'Copy path (on this PC)', icon: '⎘', run: () => void copyPath(area, node, true) })
+    if (!isFolder) items.push({ label: 'Open in default app', icon: '↗', run: () => void window.api.wikiOpenExternal(area, node.path), gapBefore: true })
+    items.push({ label: 'Show in system explorer', icon: '↗', run: () => void window.api.wikiReveal(area, node.path), gapBefore: isFolder })
+    if (!ro) items.push({ label: 'Rename…', icon: '✎', run: () => renameNode(area, node), gapBefore: true },
+      { label: 'Delete', icon: '🗑', run: () => void deleteNode(area, node), danger: true })
+    return items
   }
 
   // DM: copy the shared and secret parts of notes to the Party Wiki and the players' private folders.
@@ -267,9 +329,10 @@ export function WikiView({ onClose, onPopOut }: { onClose: () => void; onPopOut?
     ? backlinks(open.path, texts[open.area], pagesByArea[open.area])
     : []
 
-  const results = search.trim()
+  const results = search.trim() || searchIn
     ? AREAS.flatMap(({ area }) => texts[area]
-        .filter((p) => p.path.toLowerCase().includes(search.toLowerCase()) || p.text.toLowerCase().includes(search.toLowerCase()))
+        .filter((p) => !searchIn || (area === searchIn.area && p.path.startsWith(`${searchIn.path}/`)))
+        .filter((p) => !search.trim() || p.path.toLowerCase().includes(search.toLowerCase()) || p.text.toLowerCase().includes(search.toLowerCase()))
         .map((p) => ({ area, path: p.path })))
     : []
 
@@ -281,7 +344,7 @@ export function WikiView({ onClose, onPopOut }: { onClose: () => void; onPopOut?
         const note = folderNote(n.path, pagesByArea[area])
         return (
           <div key={key}>
-            <button className="tree-row" style={{ paddingLeft: depth * 12 }} onClick={() => {
+            <button className="tree-row" style={{ paddingLeft: depth * 12 }} onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, area, node: n }) }} onClick={() => {
               setExpanded((prev) => { const next = new Set(prev); if (next.has(key)) next.delete(key); else next.add(key); return next })
               if (note) void openPage(area, note)
             }}>{isOpen ? '▾' : '▸'} {n.name}</button>
@@ -291,6 +354,7 @@ export function WikiView({ onClose, onPopOut }: { onClose: () => void; onPopOut?
       }
       return (
         <button key={key} className={`tree-row ${open?.area === area && open.path === n.path ? 'on' : ''}`} style={{ paddingLeft: depth * 12 + 12 }}
+          onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY, area, node: n }) }}
           onClick={() => openPage(area, n.path)}>{n.name}</button>
       )
     })
@@ -316,7 +380,8 @@ export function WikiView({ onClose, onPopOut }: { onClose: () => void; onPopOut?
       <div className="wiki-body">
         <aside className="wiki-tree">
           <input type="text" className="text-input" placeholder="Search pages and text…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          {search.trim() ? (
+          {searchIn && <div className="small"><span className="chip">in {searchIn.path}</span> <button className="small" onClick={() => setSearchIn(null)}>Clear</button></div>}
+          {search.trim() || searchIn ? (
             <div>
               {results.length === 0 && <p className="muted small">Nothing found.</p>}
               {results.map((r) => <button key={`${r.area}${r.path}`} className="tree-row" onClick={() => { setSearch(''); void openPage(r.area, r.path) }}>
@@ -377,6 +442,32 @@ export function WikiView({ onClose, onPopOut }: { onClose: () => void; onPopOut?
           )}
         </aside>
       </div>
+      {menu && <div className="menu-backdrop" onClick={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }} />}
+      {menu && (
+        <div className="context-menu" style={{ left: Math.min(menu.x, window.innerWidth - 240), top: Math.min(menu.y, window.innerHeight - 380) }} onClick={(e) => e.stopPropagation()}>
+          {menuItems(menu.area, menu.node).map((item) => (
+            <div key={item.label}>
+              {item.gapBefore && <hr />}
+              <button className={item.danger ? 'danger' : ''} onClick={() => { setMenu(null); item.run() }}><span className="menu-icon">{item.icon}</span>{item.label}</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {moving && (
+        <div className="modal-backdrop">
+          <div className="modal levelup ask">
+            <h3>Move {moving.node.type === 'folder' ? 'folder' : 'file'} "{moving.node.name}" to…</h3>
+            <select value={moving.target} onChange={(e) => setMoving({ ...moving, target: e.target.value })}>
+              <option value="">(top of {moving.area === 'notes' ? 'My Notes' : 'the Party Wiki'})</option>
+              {foldersOf(trees[moving.area] ?? []).filter((f) => f !== moving.node.path && !f.startsWith(`${moving.node.path}/`)).map((f) => <option key={f} value={f}>{f}</option>)}
+            </select>
+            <footer>
+              <button onClick={() => setMoving(null)}>Cancel</button>
+              <button className="primary" onClick={() => { const m = moving; setMoving(null); void moveNodeTo(m.area, m.node, m.target) }}>Move</button>
+            </footer>
+          </div>
+        </div>
+      )}
       {ask && (
         <div className="modal-backdrop">
           <div className="modal levelup ask">

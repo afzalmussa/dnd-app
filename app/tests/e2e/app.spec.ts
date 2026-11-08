@@ -169,3 +169,23 @@ test('songs in a music folder play one after another', async () => {
   await expect(page.locator('.music-now .track-name')).toHaveText('Second song')
   await app.close()
 })
+
+test('right-clicking a wiki folder or page shows the Obsidian-style menu and the actions work', async () => {
+  const { app, page, root } = await launch('dm', (r) => {
+    mkdirSync(join(r, 'notes', 'Places'), { recursive: true })
+    writeFileSync(join(r, 'notes', 'Places', 'Inn.md'), '# Inn')
+  })
+  await page.locator('.wiki-tree').getByText('Places').click({ button: 'right' })
+  for (const label of ['New note', 'New folder', 'Make a copy', 'Move folder to…', 'Search in folder', 'Show in system explorer', 'Rename…', 'Delete']) {
+    await expect(page.locator('.context-menu').getByRole('button', { name: label })).toBeVisible()
+  }
+  await page.locator('.context-menu').getByRole('button', { name: 'Make a copy' }).click()
+  await expect.poll(() => existsSync(join(root, 'notes', 'Places 1', 'Inn.md'))).toBe(true)
+  // a page: copy and its menu
+  await page.locator('.wiki-tree').getByRole('button', { name: '▸ Places', exact: true }).click()
+  await page.locator('.wiki-tree').getByText('Inn', { exact: true }).first().click({ button: 'right' })
+  await expect(page.locator('.context-menu').getByRole('button', { name: 'Open in default app' })).toBeVisible()
+  await page.locator('.context-menu').getByRole('button', { name: 'Make a copy' }).click()
+  await expect.poll(() => existsSync(join(root, 'notes', 'Places', 'Inn 1.md'))).toBe(true)
+  await app.close()
+})

@@ -32,6 +32,11 @@ const api: AppApi = {
   wikiCreateFolder: (area, path) => ipcRenderer.invoke('wikiCreateFolder', area, path),
   wikiRename: (area, path, newPath) => ipcRenderer.invoke('wikiRename', area, path, newPath),
   wikiTrash: (area, path) => ipcRenderer.invoke('wikiTrash', area, path),
+  wikiCopy: (area, path) => ipcRenderer.invoke('wikiCopy', area, path),
+  wikiMove: (area, path, newPath) => ipcRenderer.invoke('wikiMove', area, path, newPath),
+  wikiReveal: (area, path) => ipcRenderer.invoke('wikiReveal', area, path),
+  wikiOpenExternal: (area, path) => ipcRenderer.invoke('wikiOpenExternal', area, path),
+  wikiFullPath: (area, path) => ipcRenderer.invoke('wikiFullPath', area, path),
   wikiPages: (area) => ipcRenderer.invoke('wikiPages', area),
   onWikiChanged: (callback) => {
     const listener = (_event: unknown, area: 'notes' | 'party' | 'private') => callback(area)
