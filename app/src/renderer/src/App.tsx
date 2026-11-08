@@ -43,7 +43,26 @@ export default function App() {
   const refreshRole = () => { void window.api.getSettings().then((s) => setRole(s.role)) }
   useEffect(refreshRole, [])
   const [showWiki, setShowWiki] = useState(false)
+  // The DM opens straight to the screen they used last (the Wiki the first time), with no character to pick.
+  // The party's sheets are read from the DM folder, and the encounter is remembered, so the session carries on where it stopped.
+  const [startScreen] = useState(() => { try { return localStorage.getItem('dm.lastScreen') ?? 'wiki' } catch { return 'wiki' } })
+  const started = useRef(false)
+  useEffect(() => {
+    void window.api.getSettings().then((s) => {
+      if (s.role === 'dm' && !PLAYER_EDITION) {
+        setShowPicker(false)
+        setShowWiki(startScreen === 'wiki')
+        setShowEncounters(startScreen === 'encounters')
+        setShowSound(startScreen === 'sound')
+      }
+      started.current = true
+    })
+  }, [])
   const [showSettings, setShowSettings] = useState(false)
+  useEffect(() => {
+    if (!started.current || role !== 'dm' || PLAYER_EDITION) return
+    try { localStorage.setItem('dm.lastScreen', showSound ? 'sound' : showEncounters ? 'encounters' : showWiki ? 'wiki' : 'sheet') } catch { /* not remembered */ }
+  }, [showWiki, showEncounters, showSound, role])
   const [message, setMessage] = useState<string | null>(null)
   const [rolls, setRolls] = useState<RollEntry[]>([])
   const [rollMode, setRollMode] = useState<RollMode>('normal')

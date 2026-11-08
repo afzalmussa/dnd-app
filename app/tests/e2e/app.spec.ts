@@ -20,8 +20,10 @@ async function launch(role: 'player' | 'dm'): Promise<{ app: ElectronApplication
   const app = await electron.launch({ args: ['.', `--user-data-dir=${userData}`], cwd: process.cwd() })
   const page = await app.firstWindow()
   await page.waitForSelector('.toolbar')
-  await page.getByRole('button', { name: 'New character' }).click() // the picker opens first and covers the toolbar
-  await expect(page.locator('.picker-backdrop')).toHaveCount(0)
+  if (role === 'player') {
+    await page.getByRole('button', { name: 'New character' }).click() // the picker opens first and covers the toolbar
+    await expect(page.locator('.picker-backdrop')).toHaveCount(0)
+  }
   return { app, page, root }
 }
 
@@ -46,8 +48,7 @@ test('the DM sees the sound board and can search monsters', async () => {
 
 test('a session recap page is created in the wiki', async () => {
   const { app, page, root } = await launch('dm')
-  await page.getByRole('button', { name: 'Wiki' }).click()
-  await page.getByRole('button', { name: 'New session recap' }).click()
+  await page.getByRole('button', { name: 'New session recap' }).click() // the DM starts in the wiki
   await expect(page.locator('textarea').first()).toContainText('Session 1')
   await expect.poll(() => existsSync(join(root, 'notes', 'Sessions')) && readdirSync(join(root, 'notes', 'Sessions')).length).toBe(1)
   await app.close()
@@ -63,10 +64,23 @@ test('Back up now writes a zip to the backup folder', async () => {
 
 test('the wiki pops out into its own window', async () => {
   const { app, page } = await launch('dm')
-  await page.getByRole('button', { name: 'Wiki' }).click()
   const opened = app.waitForEvent('window')
   await page.getByRole('button', { name: 'Pop out' }).click()
   const popup = await opened
   await expect(popup.getByRole('button', { name: 'New session recap' })).toBeVisible()
   await app.close()
+})
+
+test('the DM opens straight into the wiki, and then into the screen they left', async () => {
+  const { app, page, root } = await launch('dm')
+  await expect(page.locator('.picker-backdrop')).toHaveCount(0)
+  await expect(page.locator('.wiki')).toBeVisible()
+  await page.getByRole('button', { name: 'Encounters' }).click()
+  await expect(page.locator('.encounters')).toBeVisible()
+  await app.close()
+  // second launch with the same profile
+  const again = await electron.launch({ args: ['.', `--user-data-dir=${join(root, 'userdata')}`], cwd: process.cwd() })
+  const page2 = await again.firstWindow()
+  await expect(page2.locator('.encounters')).toBeVisible()
+  await again.close()
 })
