@@ -423,3 +423,6 @@ strong.low { color: #ff4d4d; }
 .music-now { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; padding: 0.5rem 0.6rem; margin-bottom: 0.6rem; background: var(--panel-alt); border: 1px solid var(--line); border-radius: 6px; }
 .music-seek { flex: 1 1 14rem; min-width: 8rem; }
 .music-time { font-variant-numeric: tabular-nums; }
+
+.music-folder { margin: 0.6rem 0; }
+.music-folder summary { cursor: pointer; padding: 0.3rem 0; }

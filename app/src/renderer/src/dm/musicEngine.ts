@@ -18,13 +18,17 @@ export interface Playing {
   duration: number // seconds, 0 when unknown
   ad: boolean
   error: string
+  shuffle: boolean
+  queued: number // how many songs are in the list being played
 }
 
 const listeners = new Set<Listener>()
 let audio: HTMLAudioElement | null = null
 let youtube = false
 let timer: ReturnType<typeof setInterval> | null = null
-let now: Playing = { currentId: null, paused: false, volume: 0.5, position: 0, duration: 0, ad: false, error: '' }
+let queue: Track[] = []
+let generation = 0 // each play() gets a number, so a slow start that was replaced by a newer song cannot stop it
+let now: Playing = { currentId: null, paused: false, volume: 0.5, position: 0, duration: 0, ad: false, error: '', shuffle: false, queued: 0 }
 
 function set(change: Partial<Playing>): void {
   now = { ...now, ...change }
@@ -79,26 +83,46 @@ export function stop(): void {
   set({ currentId: null, paused: false, position: 0, duration: 0, ad: false, error: '' })
 }
 
-export async function play(track: Track): Promise<void> {
+// Plays a song. `list` is the list it came from: when a song ends the next one in the list starts (a list of one repeats).
+export async function play(track: Track, list: Track[] = [track]): Promise<void> {
   stop()
+  const mine = ++generation
+  queue = list.length > 0 ? list : [track]
   const yt = youtubeUrl(track.url)
-  set({ currentId: track.id, error: '' })
+  set({ currentId: track.id, error: '', queued: queue.length })
   startPolling()
   if (yt) {
     youtube = true
     try {
       await window.api.musicPlay(yt, now.volume)
     } catch (e) {
+      if (mine !== generation) return
       stop()
       set({ error: (e as Error).message })
     }
   } else {
     audio = new Audio(track.url)
-    audio.loop = true
+    audio.loop = queue.length < 2
+    audio.addEventListener('ended', () => next())
     audio.volume = now.volume
-    await audio.play().catch(() => { stop(); set({ error: 'That file could not be played.' }) })
+    await audio.play().catch(() => { if (mine !== generation) return; stop(); set({ error: 'That file could not be played.' }) })
   }
 }
+
+export function setShuffle(on: boolean): void {
+  set({ shuffle: on })
+}
+
+function step(direction: 1 | -1): void {
+  if (!now.currentId || queue.length < 2) return
+  const at = queue.findIndex((t) => t.id === now.currentId)
+  let to = (at + direction + queue.length) % queue.length
+  if (now.shuffle && direction === 1) while (to === at) to = Math.floor(Math.random() * queue.length)
+  void play(queue[to], queue)
+}
+
+export const next = (): void => step(1)
+export const previous = (): void => step(-1)
 
 export function togglePause(): void {
   if (!now.currentId) return

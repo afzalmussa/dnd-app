@@ -5,7 +5,7 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { extname, join, resolve, sep } from 'node:path'
-import type { SoundInfo } from '../shared/api'
+import type { MusicTrackInfo, SoundInfo } from '../shared/api'
 import { PLAYER_EDITION } from './edition'
 import { loadSettings } from './settings'
 
@@ -17,8 +17,17 @@ export function audioFolder(): string {
   return loadSettings().audioFolder
 }
 
-export function safeAudioPath(relative: string): string {
-  const base = resolve(audioFolder())
+// `host` is "sounds" (the sound library) or "m0", "m1"... (the DM's music folders, in the order Settings lists them).
+export function folderForHost(host: string): string {
+  if (host === 'sounds') return audioFolder()
+  const m = host.match(/^m(\d+)$/)
+  const folder = m ? loadSettings().musicFolders[Number(m[1])]?.folder : undefined
+  if (!folder) throw new Error('Unknown music folder')
+  return folder
+}
+
+export function safeAudioPath(host: string, relative: string): string {
+  const base = resolve(folderForHost(host))
   const full = resolve(base, relative)
   if (!full.startsWith(base + sep) || !AUDIO_TYPES.has(extname(full).toLowerCase())) throw new Error('Not an audio file in the sound folder')
   return full
@@ -69,4 +78,14 @@ export async function youtubeTitle(url: string): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+// Every audio file in the music folders chosen in Settings, grouped by the folder's name.
+export function listMusic(): MusicTrackInfo[] {
+  if (PLAYER_EDITION) return []
+  return loadSettings().musicFolders.flatMap((f, i) =>
+    walk(f.folder).map((path) => ({
+      id: `${i}:${path}`, group: f.name, name: prettify(path.split('/').pop() ?? path),
+      url: `audio-file://m${i}/${path.split('/').map(encodeURIComponent).join('/')}`
+    })).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })))
 }

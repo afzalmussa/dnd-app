@@ -3,6 +3,16 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFil
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+// A WAV file of silence, so the music player has something it can really play.
+function silence(seconds: number): Buffer {
+  const rate = 8000
+  const data = Buffer.alloc(rate * seconds)
+  const h = Buffer.alloc(44)
+  h.write('RIFF', 0); h.writeUInt32LE(36 + data.length, 4); h.write('WAVEfmt ', 8); h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22)
+  h.writeUInt32LE(rate, 24); h.writeUInt32LE(rate, 28); h.writeUInt16LE(1, 32); h.writeUInt16LE(8, 34); h.write('data', 36); h.writeUInt32LE(data.length, 40)
+  return Buffer.concat([h, data.fill(128)])
+}
+
 // Each test gets its own empty app-data folder, with settings written for it, so nothing real is touched.
 async function launch(role: 'player' | 'dm', seed?: (root: string) => void): Promise<{ app: ElectronApplication; page: Page; root: string }> {
   const root = mkdtempSync(join(tmpdir(), 'dnd-e2e-'))
@@ -10,10 +20,13 @@ async function launch(role: 'player' | 'dm', seed?: (root: string) => void): Pro
   const audio = folder('audio')
   mkdirSync(join(audio, 'Ambience'), { recursive: true })
   writeFileSync(join(audio, 'Ambience', 'test_rain.wav'), Buffer.alloc(64))
+  mkdirSync(join(root, 'music'), { recursive: true })
+  for (const n of ['First song', 'Second song']) writeFileSync(join(root, 'music', `${n}.wav`), silence(20))
   const settings = {
     saveFolder: folder('characters'), contentFolder: folder('content'), role, dmFolder: folder('characters'),
     notesFolder: folder('notes'), partyWikiFolder: folder('party'), privateFolder: '', playerFolders: {},
-    audioFolder: audio, backupFolder: folder('backups'), lastBackup: null
+    audioFolder: audio, backupFolder: folder('backups'), lastBackup: null,
+    musicFolders: [{ name: 'Battle', folder: join(root, 'music') }]
   }
   seed?.(root)
   const userData = folder('userdata')
@@ -132,7 +145,7 @@ test('YouTube music plays, and the bar can jump forward', async () => {
   await page.getByPlaceholder(/Paste a YouTube link/).fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
   await page.getByPlaceholder(/^Name/).fill('Test song')
   await page.getByRole('button', { name: 'Save' }).click()
-  await page.getByRole('button', { name: '▶ Play' }).click()
+  await page.locator('.music-list').first().getByRole('button', { name: '▶ Play' }).click()
   const seconds = async () => {
     const text = (await page.locator('.music-now .music-time').first().textContent()) ?? '0:00'
     const [m, s] = text.split(':').map(Number)
@@ -142,5 +155,17 @@ test('YouTube music plays, and the bar can jump forward', async () => {
   const before = await seconds()
   await page.getByTitle('Forward 10 seconds').click()
   await expect.poll(seconds, { timeout: 10_000 }).toBeGreaterThan(before + 8)
+  await app.close()
+})
+
+test('songs in a music folder play one after another', async () => {
+  const { app, page } = await launch('dm')
+  await page.getByRole('button', { name: 'Sound' }).click()
+  await page.getByRole('button', { name: 'Streaming music' }).click()
+  await expect(page.locator('.music-folder summary')).toContainText('Battle')
+  await page.locator('.music-folder').getByRole('button', { name: '▶ Play' }).first().click()
+  await expect(page.locator('.music-now .track-name')).toHaveText('First song')
+  await page.getByTitle('Next song').click()
+  await expect(page.locator('.music-now .track-name')).toHaveText('Second song')
   await app.close()
 })

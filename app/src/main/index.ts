@@ -22,9 +22,9 @@ import { getCampaign, listParty, setCampaign } from './party'
 import { activeCampaignId, createCampaign, deleteCampaign, getSaveFolder, loadSettings, renameCampaign, saveSettings, switchCampaign } from './settings'
 import { APP_NAME, PLAYER_EDITION } from './edition'
 import { backupIfDue, runBackup } from './backup'
-import { listSounds, safeAudioPath, youtubeTitle } from './audio'
+import { listMusic, listSounds, safeAudioPath, youtubeTitle } from './audio'
 import type { FolderKey, MusicControl } from '../shared/api'
-import { musicControl, musicState, playMusic, stopMusic } from './music'
+import { musicControl, musicState, openYoutubeSignIn, playMusic, stopMusic } from './music'
 import * as wiki from './wikiFiles'
 import { publish } from './wikiPublish'
 
@@ -127,6 +127,17 @@ function registerHandlers(): void {
   ipcMain.handle('runBackup', () => runBackup())
   ipcMain.handle('musicPlay', (_e, url: string, volume: number) => playMusic(url, volume))
   ipcMain.handle('musicState', () => musicState())
+  ipcMain.handle('youtubeSignIn', () => openYoutubeSignIn())
+  ipcMain.handle('listMusic', () => listMusic())
+  ipcMain.handle('addMusicFolder', async (event, name: string) => {
+    if (PLAYER_EDITION) return null
+    const parent = BrowserWindow.fromWebContents(event.sender)
+    const options = { properties: ['openDirectory' as const], title: `Choose the ${name} music folder` }
+    const result = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options)
+    if (result.canceled || result.filePaths.length === 0) return null
+    return saveSettings({ musicFolders: [...loadSettings().musicFolders, { name: name.trim() || 'Music', folder: result.filePaths[0] }] })
+  })
+  ipcMain.handle('removeMusicFolder', (_e, index: number) => saveSettings({ musicFolders: loadSettings().musicFolders.filter((_, i) => i !== index) }))
   ipcMain.handle('musicControl', (_e, control: MusicControl) => musicControl(control))
   ipcMain.on('campaignId', (event) => { event.returnValue = activeCampaignId() })
   // A different campaign means different folders: the window is reloaded by the screen, and the wiki watchers follow the new folders.
@@ -206,8 +217,9 @@ app.whenReady().then(() => {
   protocol.handle('audio-file', (request) => {
     try {
       if (PLAYER_EDITION) return new Response('Not allowed', { status: 403 })
-      const relative = decodeURIComponent(new URL(request.url).pathname.slice(1))
-      return net.fetch(pathToFileURL(safeAudioPath(relative)).toString(), { headers: request.headers })
+      const url = new URL(request.url)
+      const relative = decodeURIComponent(url.pathname.slice(1))
+      return net.fetch(pathToFileURL(safeAudioPath(url.hostname, relative)).toString(), { headers: request.headers })
     } catch {
       return new Response('Not found', { status: 404 })
     }

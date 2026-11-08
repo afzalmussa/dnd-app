@@ -26,11 +26,18 @@ export interface Settings extends CampaignSettings {
   contentFolder: string // corrections and homebrew; can be a shared folder
   role: 'player' | 'dm'
   audioFolder: string // DM only: the sound library
+  musicFolders: MusicFolder[] // DM only: folders of music, one per kind (Battle, Town, ...)
   activeCampaign: string
   campaigns: { id: string; name: string }[]
 }
 
+export interface MusicFolder {
+  name: string
+  folder: string
+}
+
 interface Stored {
+  musicFolders: MusicFolder[]
   contentFolder: string
   role: 'player' | 'dm'
   audioFolder: string
@@ -59,7 +66,7 @@ function newCampaign(name: string, id: string, first: boolean): CampaignSettings
 
 function defaults(): Stored {
   return {
-    contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', audioFolder: devAudioFolder() ?? join(app.getPath('userData'), 'audio'),
+    musicFolders: [], contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', audioFolder: devAudioFolder() ?? join(app.getPath('userData'), 'audio'),
     activeCampaign: 'main', campaigns: { main: newCampaign('My campaign', 'main', true) }
   }
 }
@@ -79,7 +86,7 @@ function readStored(): Stored {
     // An older settings file with the folders at the top: they become the first campaign.
     const first = { ...newCampaign('My campaign', 'main', true) }
     for (const key of CAMPAIGN_KEYS) if (raw[key] !== undefined) (first as any)[key] = raw[key]
-    return { ...base, contentFolder: raw.contentFolder ?? base.contentFolder, role: raw.role ?? base.role, audioFolder: raw.audioFolder ?? base.audioFolder, campaigns: { main: first }, activeCampaign: 'main' }
+    return { ...base, contentFolder: raw.contentFolder ?? base.contentFolder, role: raw.role ?? base.role, audioFolder: raw.audioFolder ?? base.audioFolder, musicFolders: raw.musicFolders ?? [], campaigns: { main: first }, activeCampaign: 'main' }
   } catch {
     // A damaged settings file should not stop the app from starting.
     return defaults()
@@ -95,7 +102,7 @@ export function loadSettings(): Settings {
   const s = readStored()
   const { name: _name, ...campaign } = s.campaigns[s.activeCampaign]
   const merged: Settings = {
-    ...campaign, contentFolder: s.contentFolder, role: PLAYER_EDITION ? 'player' : s.role, audioFolder: s.audioFolder,
+    ...campaign, contentFolder: s.contentFolder, role: PLAYER_EDITION ? 'player' : s.role, audioFolder: s.audioFolder, musicFolders: s.musicFolders ?? [],
     activeCampaign: s.activeCampaign, campaigns: Object.entries(s.campaigns).map(([id, c]) => ({ id, name: c.name }))
   }
   return merged

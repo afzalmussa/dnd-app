@@ -71,6 +71,13 @@ export interface BackupSummary {
   at: string
 }
 
+export interface MusicTrackInfo {
+  id: string
+  name: string
+  group: string // the music folder it is in (Battle, Town, ...)
+  url: string
+}
+
 export interface MusicState {
   position: number // seconds
   duration: number // seconds; 0 while unknown (a live stream)
@@ -108,6 +115,7 @@ export interface AppSettings {
   lastBackup: string | null
   activeCampaign: string
   campaigns: { id: string; name: string }[]
+  musicFolders: { name: string; folder: string }[]
 }
 
 export interface PublishSummary {
@@ -137,6 +145,10 @@ export interface AppApi {
   listMonsters(): Promise<Record<string, any>[]>
   runBackup(): Promise<BackupSummary>
   musicPlay(url: string, volume: number): Promise<void>
+  youtubeSignIn(): Promise<void>
+  listMusic(): Promise<MusicTrackInfo[]>
+  addMusicFolder(name: string): Promise<AppSettings | null>
+  removeMusicFolder(index: number): Promise<AppSettings>
   musicState(): Promise<MusicState | null>
   musicControl(control: MusicControl): Promise<void>
   campaignId: string // the campaign this window opened with; switching reloads the window

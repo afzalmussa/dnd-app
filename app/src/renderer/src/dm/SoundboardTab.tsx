@@ -3,7 +3,7 @@
 // Sounds keep playing when you leave this tab.
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
-import type { SoundInfo } from '../../../shared/api'
+import type { MusicTrackInfo, SoundInfo } from '../../../shared/api'
 import { useStoredState } from '../storedState'
 import * as music from './musicEngine'
 import * as sound from './soundEngine'
@@ -44,8 +44,11 @@ function MusicList() {
   const [link, setLink] = useState('')
   const [name, setName] = useState('')
   const [note, setNote] = useState('')
+  const [files, setFiles] = useState<MusicTrackInfo[]>([])
+  useEffect(() => { void window.api.listMusic().then(setFiles).catch(() => setFiles([])) }, [])
+  const groups = [...new Set(files.map((f) => f.group))]
   const now = useSyncExternalStore(music.subscribe, () => JSON.stringify(music.state()))
-  const { currentId, paused, volume, position, duration, ad, error } = JSON.parse(now) as ReturnType<typeof music.state>
+  const { currentId, paused, volume, position, duration, ad, error, shuffle, queued } = JSON.parse(now) as ReturnType<typeof music.state>
   const [dragging, setDragging] = useState<number | null>(null) // where the slider is while it is being dragged
 
   async function fillName(url: string) {
@@ -73,6 +76,7 @@ function MusicList() {
           onChange={(e) => setLink(e.target.value)} onBlur={() => fillName(link)} onPaste={(e) => { const t = e.clipboardData.getData('text'); setTimeout(() => fillName(t), 0) }} />
         <input type="text" className="text-input" placeholder="Name (filled in from YouTube)" value={name} onChange={(e) => setName(e.target.value)} />
         <button className="primary small" disabled={!link.trim()} onClick={add}>Save</button>
+        <button className="small" title="Sign in with your own account so YouTube Premium removes adverts" onClick={() => void window.api.youtubeSignIn()}>Sign in to YouTube</button>
       </div>
       {note && <p className="warning small">{note}</p>}
       <div className="music-volume">
@@ -84,14 +88,17 @@ function MusicList() {
       {error && <p className="warning small">{error}</p>}
       {currentId && (
         <div className="music-now">
-          <span className="track-name">{tracks.find((t) => t.id === currentId)?.name}</span>
-          <button className="small" title="Back 10 seconds" onClick={() => music.seek(position - 10)}>⏪ 10</button>
+          <span className="track-name">{tracks.find((t) => t.id === currentId)?.name ?? files.find((f) => f.id === currentId)?.name}</span>
+          {queued > 1 && <button className="small" title="Previous song" onClick={music.previous}>⏮</button>}
+          <button className="small" onClick={() => music.seek(position - 10)}>⏪ 10</button>
           <button className="small" onClick={music.togglePause}>{paused ? '▶' : '⏸'}</button>
           <button className="small" title="Forward 10 seconds" onClick={() => music.seek(position + 10)}>10 ⏩</button>
+          {queued > 1 && <button className="small" title="Next song" onClick={music.next}>⏭</button>}
           <span className="small music-time">{clock(dragging ?? position)}</span>
           <input type="range" className="music-seek" min={0} max={Math.max(1, Math.round(duration))} step={1} disabled={!duration || ad} value={Math.round(dragging ?? position)}
             onChange={(e) => setDragging(Number(e.target.value))} onPointerUp={() => { if (dragging !== null) music.seek(dragging); setDragging(null) }} onKeyUp={() => { if (dragging !== null) music.seek(dragging); setDragging(null) }} />
           <span className="small music-time">{duration ? clock(duration) : 'live'}</span>
+          {queued > 1 && <label className="small"><input type="checkbox" checked={shuffle} onChange={(e) => music.setShuffle(e.target.checked)} /> Shuffle</label>}
           {ad && <span className="small muted">Advert playing</span>}
         </div>
       )}
@@ -101,13 +108,31 @@ function MusicList() {
           const active = currentId === t.id
           return (
             <li key={t.id} className={active ? 'on' : ''}>
-              <button className="small" onClick={() => (active ? music.togglePause() : music.play(t))}>{active && !paused ? '⏸ Pause' : '▶ Play'}</button>
+              <button className="small" onClick={() => (active ? music.togglePause() : music.play(t, tracks))}>{active && !paused ? '⏸ Pause' : '▶ Play'}</button>
               <span className="track-name">{t.name}</span>
               <button className="small danger" title="Remove from the list" onClick={() => { if (active) music.stop(); setTracks(tracks.filter((x) => x.id !== t.id)) }}>×</button>
             </li>
           )
         })}
       </ul>
+      {groups.map((g) => {
+        const list = files.filter((f) => f.group === g)
+        const asTracks = list.map((f) => ({ id: f.id, name: f.name, url: f.url }))
+        return (
+          <details key={g} className="music-folder" open={groups.length === 1}>
+            <summary><strong>{g}</strong> <span className="muted small">{list.length} songs</span></summary>
+            <ul className="music-list">
+              {asTracks.map((t) => (
+                <li key={t.id} className={currentId === t.id ? 'on' : ''}>
+                  <button className="small" onClick={() => (currentId === t.id ? music.togglePause() : music.play(t, asTracks))}>{currentId === t.id && !paused ? '⏸ Pause' : '▶ Play'}</button>
+                  <span className="track-name">{t.name}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )
+      })}
+      {groups.length === 0 && <p className="muted small">Music folders (Battle, Town, Field…) can be added in Settings; the songs in them appear here.</p>}
     </div>
   )
 }

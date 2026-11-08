@@ -21,6 +21,7 @@ export function SettingsDialog({ onClose, onChanged }: { onClose: () => void; on
   function chooseTheme(next: ThemeChoice) { setTheme(next); applyTheme(next) }
   const colourOf = (variable: string) => theme.overrides[variable] ?? THEMES[theme.name].vars[variable]
   const [campaignName, setCampaignName] = useState('')
+  const [musicName, setMusicName] = useState('')
   // Switching campaign changes every folder below, so the window is reloaded with the new campaign.
   async function campaignAction(run: () => Promise<AppSettings>) {
     try { await run(); window.location.reload() } catch (e) { alert((e as Error).message) }
@@ -100,6 +101,18 @@ export function SettingsDialog({ onClose, onChanged }: { onClose: () => void; on
                 <p className="muted small">{r.help}</p>
               </div>
             ))}
+            {!PLAYER_EDITION && settings.role === 'dm' && (
+              <div className="requirement">
+                <h4>Music folders</h4>
+                <p className="muted small">One folder per kind of music (Battle, Town, Field, Dungeon, Tavern…). Put mp3 files in each; they appear on the Sound tab under Streaming music, play one after another, and can be shuffled.</p>
+                {settings.musicFolders.map((f, i) => (
+                  <div key={f.folder} className="small"><strong>{f.name}</strong> <code>{f.folder}</code>{' '}
+                    <button className="small danger" onClick={async () => setSettings(await window.api.removeMusicFolder(i))}>Remove</button></div>
+                ))}
+                <input type="text" className="text-input" placeholder="Kind of music, e.g. Battle" value={musicName} onChange={(e) => setMusicName(e.target.value)} />{' '}
+                <button className="small" disabled={!musicName.trim()} onClick={async () => { const next = await window.api.addMusicFolder(musicName.trim()); if (next) { setSettings(next); setMusicName('') } }}>Add folder…</button>
+              </div>
+            )}
             {!PLAYER_EDITION && settings.role === 'dm' && (
               <div className="requirement">
                 <h4>Player folders (for secrets)</h4>
