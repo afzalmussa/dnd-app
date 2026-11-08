@@ -6,6 +6,9 @@ import { NotInApp } from './NotInApp'
 import '@fontsource/cinzel/400.css'
 import '@fontsource/cinzel/700.css'
 import './styles.css'
+import { applyTheme, loadTheme } from './themes'
+
+applyTheme(loadTheme()) // before anything is drawn, so there is no flash of the wrong colours
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

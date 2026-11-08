@@ -150,3 +150,32 @@ export function startWatching(window: BrowserWindow): void {
     }
   }
 }
+
+// Obsidian finds an image by its file name anywhere in the vault ("Burgomasters Mansion.png" in an Assets
+// folder). When the path written in a page does not exist, look for a file with that name elsewhere in the area.
+const imageIndex = new Map<string, { at: number; byName: Map<string, string> }>()
+
+export function findAttachment(area: Area, relative: string): string | null {
+  const root = areaRoot(area)
+  if (!root) return null
+  let entry = imageIndex.get(area)
+  const lookup = (e: NonNullable<typeof entry>) => e.byName.get((relative.split('/').pop() ?? '').toLowerCase()) ?? null
+  if (entry && Date.now() - entry.at < 30_000) {
+    const hit = lookup(entry)
+    if (hit) return hit
+  }
+  const byName = new Map<string, string>()
+  const scan = (dir: string, depth: number) => {
+    if (depth > 12) return
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name.startsWith('.')) continue
+      const full = join(dir, e.name)
+      if (e.isDirectory()) scan(full, depth + 1)
+      else if (!byName.has(e.name.toLowerCase())) byName.set(e.name.toLowerCase(), full)
+    }
+  }
+  try { scan(resolve(root), 0) } catch { /* unreadable folder: nothing found */ }
+  entry = { at: Date.now(), byName }
+  imageIndex.set(area, entry)
+  return lookup(entry)
+}

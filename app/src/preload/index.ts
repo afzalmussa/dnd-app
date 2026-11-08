@@ -7,6 +7,11 @@ import type { AppApi } from '../shared/api'
 const api: AppApi = {
   listMonsters: () => ipcRenderer.invoke('listMonsters'),
   runBackup: () => ipcRenderer.invoke('runBackup'),
+  campaignId: ipcRenderer.sendSync('campaignId') as string,
+  createCampaign: (name) => ipcRenderer.invoke('createCampaign', name),
+  switchCampaign: (id) => ipcRenderer.invoke('switchCampaign', id),
+  renameCampaign: (id, name) => ipcRenderer.invoke('renameCampaign', id, name),
+  deleteCampaign: (id) => ipcRenderer.invoke('deleteCampaign', id),
   listSounds: () => ipcRenderer.invoke('listSounds'),
   youtubeTitle: (url) => ipcRenderer.invoke('youtubeTitle', url),
   wikiPublish: (scope, path) => ipcRenderer.invoke('wikiPublish', scope, path),

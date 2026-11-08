@@ -1,4 +1,6 @@
-# DnD Character Manager
+# DMs Toolbox (DnD Character Manager)
+
+The DM's build is called DMs Toolbox; the players' build is called DnD Character Manager. Both keep the data folder name `%APPDATA%\DnD Character Manager` (the players' is `DnD Character Manager Players`).
 
 A Windows desktop character manager for our D&D group, using the 2024 Player's Handbook rules.
 
@@ -113,3 +115,10 @@ The sounds are files in the sound folder (Settings, "The sound library"; while d
 - **Tests:** `npm test` (rules and logic), `npm run test:e2e` (starts the real app in a temporary profile and checks the toolbar for each role, the sound board, monster search, session recaps, wiki pop-out and backups).
 
 **DM start-up:** when this PC is set to DM, the app opens straight to the screen you used last (the Wiki the first time) and does not ask for a character. The party comes from the DM folder (Settings, "The DM view reads sheets from"): put each player's character file there and the Encounters tab lists them with their live hit points and slots. The encounter is remembered, and hit points live in the players' own sheets, so the next session carries on where it stopped.
+
+## Campaigns, colours, wiki images
+
+- **Campaigns:** Settings, "Campaign". Each campaign has its own characters, notes, party wiki, secrets, DM folder, backups and encounter; homebrew corrections and the sound library are shared. Your existing settings become the first campaign. Create more, rename or forget one (its files are never deleted); with two or more, a switcher appears in the toolbar.
+- **Colours:** Settings, "Colours": pick a theme (dark grey is the default; Obsidian purple, Dragon red, Midnight, Forest, High contrast, Parchment light), then change the background, panels, text or accent colour if you like. Saved on this PC.
+- **Wiki images:** `![[name.png]]` and relative images are found by file name anywhere in the folder, as Obsidian does, so images kept in an Assets folder show up.
+- **Names:** the DM's app is **DMs Toolbox**; the players' app keeps the name DnD Character Manager. The DM's data folder keeps its old name, so nothing moves.

@@ -1,10 +1,10 @@
 import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 // Each test gets its own empty app-data folder, with settings written for it, so nothing real is touched.
-async function launch(role: 'player' | 'dm'): Promise<{ app: ElectronApplication; page: Page; root: string }> {
+async function launch(role: 'player' | 'dm', seed?: (root: string) => void): Promise<{ app: ElectronApplication; page: Page; root: string }> {
   const root = mkdtempSync(join(tmpdir(), 'dnd-e2e-'))
   const folder = (name: string) => { const p = join(root, name); mkdirSync(p, { recursive: true }); return p }
   const audio = folder('audio')
@@ -15,6 +15,7 @@ async function launch(role: 'player' | 'dm'): Promise<{ app: ElectronApplication
     notesFolder: folder('notes'), partyWikiFolder: folder('party'), privateFolder: '', playerFolders: {},
     audioFolder: audio, backupFolder: folder('backups'), lastBackup: null
   }
+  seed?.(root)
   const userData = folder('userdata')
   writeFileSync(join(userData, 'settings.json'), JSON.stringify(settings))
   const app = await electron.launch({ args: ['.', `--user-data-dir=${userData}`], cwd: process.cwd() })
@@ -83,4 +84,41 @@ test('the DM opens straight into the wiki, and then into the screen they left', 
   const page2 = await again.firstWindow()
   await expect(page2.locator('.encounters')).toBeVisible()
   await again.close()
+})
+
+// A 1x1 transparent PNG.
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+
+test('an image is found by its file name anywhere in the folder, like Obsidian', async () => {
+  const { app, page } = await launch('dm', (root) => {
+    mkdirSync(join(root, 'notes', '99_Assets'), { recursive: true })
+    writeFileSync(join(root, 'notes', '99_Assets', 'Burgomasters Mansion.png'), PNG)
+    writeFileSync(join(root, 'notes', 'Mansion.md'), ['# Mansion', '', '![[Burgomasters Mansion.png]]', ''].join(String.fromCharCode(10)))
+  })
+  await page.locator('.wiki-tree').getByText('Mansion', { exact: true }).click()
+  const image = page.locator('.wiki img').first()
+  await expect(image).toBeVisible()
+  await expect.poll(() => image.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0)
+  await app.close()
+})
+
+test('a second campaign has its own settings, and the old settings file is kept as the first', async () => {
+  const { app, page, root } = await launch('dm')
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByPlaceholder('Name', { exact: true }).fill('Second campaign')
+  await page.getByRole('button', { name: 'New campaign' }).click()
+  await page.waitForSelector('.campaign-select') // the window reloads; two campaigns now show a switcher
+  await expect(page.locator('.campaign-select option')).toHaveCount(2)
+  const stored = JSON.parse(readFileSync(join(root, 'userdata', 'settings.json'), 'utf-8'))
+  expect(Object.keys(stored.campaigns)).toHaveLength(2)
+  expect(Object.values<any>(stored.campaigns)[0].notesFolder).toBe(join(root, 'notes'))
+  await app.close()
+})
+
+test('a colour theme can be chosen', async () => {
+  const { app, page } = await launch('player')
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.locator('select').filter({ hasText: 'Midnight' }).selectOption('midnight')
+  await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--page'))).toBe('#161b22')
+  await app.close()
 })

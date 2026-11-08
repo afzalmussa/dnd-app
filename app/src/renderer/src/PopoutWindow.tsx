@@ -31,6 +31,7 @@ export function PopoutWindow(props: { title: string; name?: string; size?: strin
         popup.document.head.appendChild(node.cloneNode(true))
       }
     }
+    popup.document.documentElement.setAttribute('style', document.documentElement.getAttribute('style') ?? '') // the chosen colours
     popup.document.body.className = 'popout-body'
     const root = popup.document.createElement('div')
     root.className = 'popout-root'

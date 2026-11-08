@@ -93,6 +93,8 @@ export interface AppSettings {
   audioFolder: string
   backupFolder: string // empty until chosen
   lastBackup: string | null
+  activeCampaign: string
+  campaigns: { id: string; name: string }[]
 }
 
 export interface PublishSummary {
@@ -121,6 +123,11 @@ export interface AppApi {
   // Monsters from the Monster Manual (and your own), for the DM's encounter tools.
   listMonsters(): Promise<Record<string, any>[]>
   runBackup(): Promise<BackupSummary>
+  campaignId: string // the campaign this window opened with; switching reloads the window
+  createCampaign(name: string): Promise<AppSettings>
+  switchCampaign(id: string): Promise<AppSettings>
+  renameCampaign(id: string, name: string): Promise<AppSettings>
+  deleteCampaign(id: string): Promise<AppSettings>
   listSounds(): Promise<SoundInfo[]>
   youtubeTitle(url: string): Promise<string | null>
   getSettings(): Promise<AppSettings>

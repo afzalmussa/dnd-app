@@ -10,7 +10,7 @@ import {
 } from '../../../shared/rules/encounter'
 import type { PartyMember } from '../../../shared/rules/party'
 import { NumberInput } from '../common/Inputs'
-import { useStoredState } from '../storedState'
+import { campaignKey, useStoredState } from '../storedState'
 
 const SECTION_TITLES: Record<string, string> = { traits: 'Trait', actions: 'Action', bonusActions: 'Bonus action', reactions: 'Reaction', legendaryActions: 'Legendary' }
 const SECTION_ORDER = ['traits', 'actions', 'bonusActions', 'reactions', 'legendaryActions']
@@ -107,7 +107,7 @@ function EnemyPicker({ monsters, onPick }: { monsters: MonsterStats[]; onPick: (
 export function EncountersTab() {
   const [monsters, setMonsters] = useState<MonsterStats[]>([])
   const [party, setParty] = useState<PartyMember[]>([])
-  const [state, setState] = useStoredState<EncounterState>('encounter', emptyEncounter())
+  const [state, setState] = useStoredState<EncounterState>(campaignKey('encounter'), emptyEncounter())
   const [amounts, setAmounts] = useState<Record<string, number | null>>({})
 
   useEffect(() => { void window.api.listMonsters().then((l) => setMonsters(l as MonsterStats[])).catch(() => setMonsters([])) }, [])

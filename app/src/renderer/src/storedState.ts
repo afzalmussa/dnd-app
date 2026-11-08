@@ -4,6 +4,9 @@
 
 import { useEffect, useState } from 'react'
 
+// Remembered values that belong to one campaign (the encounter, the screen last used) get the campaign in their key.
+export const campaignKey = (key: string): string => `${key}:${window.api.campaignId}`
+
 export function useStoredState<T>(key: string, initial: T): [T, (value: T) => void] {
   const [value, setValue] = useState<T>(() => {
     try {

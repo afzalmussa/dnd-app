@@ -7,11 +7,11 @@ export function NotInApp() {
     <div className="not-in-app">
       <h1>Open the app window, not a browser tab</h1>
       <p>
-        This page is the inside of the DnD Character Manager. On its own in a browser it can't read or save
+        This page is the inside of the app. On its own in a browser it can't read or save
         character files.
       </p>
       <p>
-        Use the window titled <strong>DnD Character Manager</strong> that opens when you run{' '}
+        Use the window titled <strong>DMs Toolbox</strong> that opens when you run{' '}
         <code>npm run dev</code>. The localhost address in the terminal is for the app's own use.
       </p>
     </div>

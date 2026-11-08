@@ -2,6 +2,7 @@
 // for file access (see src/shared/api.ts for the list).
 
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, session } from 'electron'
+import { existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { extname } from 'node:path'
 import { join } from 'node:path'
@@ -18,13 +19,16 @@ import {
 import { getClassData, listFeats, listItems, listSpells, mergedContent } from './dataPack'
 import { deleteUserEntry, saveUserEntry, type ContentKind } from './userContent'
 import { getCampaign, listParty, setCampaign } from './party'
-import { getSaveFolder, loadSettings, saveSettings } from './settings'
-import { PLAYER_EDITION } from './edition'
+import { activeCampaignId, createCampaign, deleteCampaign, getSaveFolder, loadSettings, renameCampaign, saveSettings, switchCampaign } from './settings'
+import { APP_NAME, PLAYER_EDITION } from './edition'
 import { backupIfDue, runBackup } from './backup'
 import { listSounds, safeAudioPath, youtubeTitle } from './audio'
 import type { FolderKey } from '../shared/api'
 import * as wiki from './wikiFiles'
 import { publish } from './wikiPublish'
+
+// The DM's app was called DnD Character Manager before it was renamed; keep using that data folder so nothing is lost.
+if (!PLAYER_EDITION && !app.commandLine.hasSwitch('user-data-dir')) app.setPath('userData', join(app.getPath('appData'), 'DnD Character Manager'))
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -32,7 +36,7 @@ function createWindow(): BrowserWindow {
     height: 950,
     minWidth: 1200,
     minHeight: 700,
-    title: 'DnD Character Manager',
+    title: APP_NAME,
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -118,6 +122,17 @@ function registerHandlers(): void {
   ipcMain.handle('wikiPages', (_e, area) => wiki.allPagesWithText(area))
   ipcMain.handle('listMonsters', () => mergedContent('monster'))
   ipcMain.handle('runBackup', () => runBackup())
+  ipcMain.on('campaignId', (event) => { event.returnValue = activeCampaignId() })
+  // A different campaign means different folders: the window is reloaded by the screen, and the wiki watchers follow the new folders.
+  const changedCampaign = (settings: ReturnType<typeof loadSettings>) => {
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win) wiki.startWatching(win)
+    return settings
+  }
+  ipcMain.handle('createCampaign', (_e, name: string) => changedCampaign(createCampaign(name)))
+  ipcMain.handle('switchCampaign', (_e, id: string) => changedCampaign(switchCampaign(id)))
+  ipcMain.handle('renameCampaign', (_e, id: string, name: string) => renameCampaign(id, name))
+  ipcMain.handle('deleteCampaign', (_e, id: string) => changedCampaign(deleteCampaign(id)))
   ipcMain.handle('listSounds', () => listSounds())
   ipcMain.handle('youtubeTitle', (_e, url: string) => youtubeTitle(url))
   ipcMain.handle('listItems', () => listItems())
@@ -174,7 +189,9 @@ app.whenReady().then(() => {
       const area = url.hostname === 'party' ? 'party' : url.hostname === 'notes' ? 'notes' : null
       const relative = decodeURIComponent(url.pathname.slice(1))
       if (!area || !IMAGE_TYPES.has(extname(relative).toLowerCase())) return new Response('Not allowed', { status: 403 })
-      return net.fetch(pathToFileURL(wiki.safePath(area, relative)).toString())
+      let file = wiki.safePath(area, relative)
+      if (!existsSync(file)) file = wiki.findAttachment(area, relative) ?? file // Obsidian-style: found by name anywhere in the folder
+      return net.fetch(pathToFileURL(file).toString())
     } catch {
       return new Response('Not found', { status: 404 })
     }
