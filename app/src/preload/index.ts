@@ -7,6 +7,9 @@ import type { AppApi } from '../shared/api'
 const api: AppApi = {
   listMonsters: () => ipcRenderer.invoke('listMonsters'),
   runBackup: () => ipcRenderer.invoke('runBackup'),
+  musicPlay: (url, volume) => ipcRenderer.invoke('musicPlay', url, volume),
+  musicState: () => ipcRenderer.invoke('musicState'),
+  musicControl: (control) => ipcRenderer.invoke('musicControl', control),
   campaignId: ipcRenderer.sendSync('campaignId') as string,
   createCampaign: (name) => ipcRenderer.invoke('createCampaign', name),
   switchCampaign: (id) => ipcRenderer.invoke('switchCampaign', id),

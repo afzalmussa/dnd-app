@@ -122,3 +122,25 @@ test('a colour theme can be chosen', async () => {
   await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--page'))).toBe('#161b22')
   await app.close()
 })
+
+// Needs the internet: streams a real YouTube video through the app and uses the seek bar.
+test('YouTube music plays, and the bar can jump forward', async () => {
+  test.setTimeout(90_000)
+  const { app, page } = await launch('dm')
+  await page.getByRole('button', { name: 'Sound' }).click()
+  await page.getByRole('button', { name: 'Streaming music' }).click()
+  await page.getByPlaceholder(/Paste a YouTube link/).fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+  await page.getByPlaceholder(/^Name/).fill('Test song')
+  await page.getByRole('button', { name: 'Save' }).click()
+  await page.getByRole('button', { name: '▶ Play' }).click()
+  const seconds = async () => {
+    const text = (await page.locator('.music-now .music-time').first().textContent()) ?? '0:00'
+    const [m, s] = text.split(':').map(Number)
+    return m * 60 + s
+  }
+  await expect.poll(seconds, { timeout: 40_000 }).toBeGreaterThan(1) // it is really playing
+  const before = await seconds()
+  await page.getByTitle('Forward 10 seconds').click()
+  await expect.poll(seconds, { timeout: 10_000 }).toBeGreaterThan(before + 8)
+  await app.close()
+})

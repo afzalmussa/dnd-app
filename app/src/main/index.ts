@@ -1,7 +1,7 @@
 // Electron main process: opens the window and answers the UI's requests
 // for file access (see src/shared/api.ts for the list).
 
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, session } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, net, protocol } from 'electron'
 import { existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { extname } from 'node:path'
@@ -23,7 +23,8 @@ import { activeCampaignId, createCampaign, deleteCampaign, getSaveFolder, loadSe
 import { APP_NAME, PLAYER_EDITION } from './edition'
 import { backupIfDue, runBackup } from './backup'
 import { listSounds, safeAudioPath, youtubeTitle } from './audio'
-import type { FolderKey } from '../shared/api'
+import type { FolderKey, MusicControl } from '../shared/api'
+import { musicControl, musicState, playMusic, stopMusic } from './music'
 import * as wiki from './wikiFiles'
 import { publish } from './wikiPublish'
 
@@ -47,6 +48,8 @@ function createWindow(): BrowserWindow {
       sandbox: true
     }
   })
+
+  window.on('closed', stopMusic) // the hidden music window must not keep the app running
 
   // The only extra window the app opens is the popped-out roll log, which is a
   // blank window the page draws into. Any other new-window request is refused.
@@ -122,6 +125,9 @@ function registerHandlers(): void {
   ipcMain.handle('wikiPages', (_e, area) => wiki.allPagesWithText(area))
   ipcMain.handle('listMonsters', () => mergedContent('monster'))
   ipcMain.handle('runBackup', () => runBackup())
+  ipcMain.handle('musicPlay', (_e, url: string, volume: number) => playMusic(url, volume))
+  ipcMain.handle('musicState', () => musicState())
+  ipcMain.handle('musicControl', (_e, control: MusicControl) => musicControl(control))
   ipcMain.on('campaignId', (event) => { event.returnValue = activeCampaignId() })
   // A different campaign means different folders: the window is reloaded by the screen, and the wiki watchers follow the new folders.
   const changedCampaign = (settings: ReturnType<typeof loadSettings>) => {
@@ -206,12 +212,6 @@ app.whenReady().then(() => {
       return new Response('Not found', { status: 404 })
     }
   })
-  // YouTube refuses embedded players that send no page address, which a desktop app does not have.
-  if (!PLAYER_EDITION) {
-    session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['https://www.youtube-nocookie.com/*', 'https://www.youtube.com/*'] }, (details, done) => {
-      done({ requestHeaders: { ...details.requestHeaders, Referer: 'https://www.youtube.com/' } })
-    })
-  }
   registerHandlers()
   backupIfDue()
   const window = createWindow()

@@ -34,13 +34,19 @@ function SoundButton({ s, playing }: { s: SoundInfo; playing: boolean }) {
   )
 }
 
+function clock(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
 function MusicList() {
   const [tracks, setTracks] = useStoredState<music.Track[]>('musicLinks', [])
   const [link, setLink] = useState('')
   const [name, setName] = useState('')
   const [note, setNote] = useState('')
   const now = useSyncExternalStore(music.subscribe, () => JSON.stringify(music.state()))
-  const { currentId, paused, volume } = JSON.parse(now) as ReturnType<typeof music.state>
+  const { currentId, paused, volume, position, duration, ad, error } = JSON.parse(now) as ReturnType<typeof music.state>
+  const [dragging, setDragging] = useState<number | null>(null) // where the slider is while it is being dragged
 
   async function fillName(url: string) {
     if (name || !url) return
@@ -51,7 +57,7 @@ function MusicList() {
   function add() {
     const url = link.trim()
     if (!music.isPlayable(url)) {
-      setNote('Paste a YouTube video or playlist link, or a direct link to an audio file (mp3, ogg, wav). Spotify cannot be played inside this app.')
+      setNote('Paste a YouTube video link (a bare playlist link does not work; open a video in the playlist and copy that), or a direct link to an audio file (mp3, ogg, wav). Spotify cannot be played inside this app.')
       return
     }
     setTracks([...tracks, { id: `${Date.now()}`, name: name.trim() || url, url }])
@@ -75,6 +81,20 @@ function MusicList() {
         <span className="muted small">{Math.round(volume * 100)}</span>
         {currentId && <button className="small danger" onClick={music.stop}>Stop</button>}
       </div>
+      {error && <p className="warning small">{error}</p>}
+      {currentId && (
+        <div className="music-now">
+          <span className="track-name">{tracks.find((t) => t.id === currentId)?.name}</span>
+          <button className="small" title="Back 10 seconds" onClick={() => music.seek(position - 10)}>⏪ 10</button>
+          <button className="small" onClick={music.togglePause}>{paused ? '▶' : '⏸'}</button>
+          <button className="small" title="Forward 10 seconds" onClick={() => music.seek(position + 10)}>10 ⏩</button>
+          <span className="small music-time">{clock(dragging ?? position)}</span>
+          <input type="range" className="music-seek" min={0} max={Math.max(1, Math.round(duration))} step={1} disabled={!duration || ad} value={Math.round(dragging ?? position)}
+            onChange={(e) => setDragging(Number(e.target.value))} onPointerUp={() => { if (dragging !== null) music.seek(dragging); setDragging(null) }} onKeyUp={() => { if (dragging !== null) music.seek(dragging); setDragging(null) }} />
+          <span className="small music-time">{duration ? clock(duration) : 'live'}</span>
+          {ad && <span className="small muted">Advert playing</span>}
+        </div>
+      )}
       {tracks.length === 0 && <p className="muted">No music saved yet. Paste a link above. It plays by streaming; nothing is downloaded.</p>}
       <ul className="music-list">
         {tracks.map((t) => {

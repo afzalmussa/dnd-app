@@ -71,6 +71,19 @@ export interface BackupSummary {
   at: string
 }
 
+export interface MusicState {
+  position: number // seconds
+  duration: number // seconds; 0 while unknown (a live stream)
+  paused: boolean
+  ad: boolean // YouTube is playing an advert, which cannot be skipped over
+  title: string
+}
+
+export interface MusicControl {
+  action: 'pause' | 'resume' | 'seek' | 'volume' | 'stop'
+  value?: number
+}
+
 export interface SoundInfo {
   id: string
   name: string
@@ -123,6 +136,9 @@ export interface AppApi {
   // Monsters from the Monster Manual (and your own), for the DM's encounter tools.
   listMonsters(): Promise<Record<string, any>[]>
   runBackup(): Promise<BackupSummary>
+  musicPlay(url: string, volume: number): Promise<void>
+  musicState(): Promise<MusicState | null>
+  musicControl(control: MusicControl): Promise<void>
   campaignId: string // the campaign this window opened with; switching reloads the window
   createCampaign(name: string): Promise<AppSettings>
   switchCampaign(id: string): Promise<AppSettings>
