@@ -4,6 +4,7 @@
 type Listener = () => void
 
 const loops = new Map<string, HTMLAudioElement>()
+const once = new Set<HTMLAudioElement>() // effects and narration still playing
 const listeners = new Set<Listener>()
 let volume = 0.7
 let version = 0 // changes whenever something playing or the volume changes, so screens can redraw
@@ -31,6 +32,7 @@ export function getVolume(): number {
 export function setVolume(v: number): void {
   volume = Math.min(1, Math.max(0, v))
   loops.forEach((a) => { a.volume = volume })
+  once.forEach((a) => { a.volume = volume })
   changed()
 }
 
@@ -65,11 +67,15 @@ export function toggleLoop(id: string, url: string): void {
 export function playOnce(url: string): void {
   const audio = new Audio(url)
   audio.volume = volume
-  void audio.play().catch(() => undefined)
+  once.add(audio)
+  audio.addEventListener('ended', () => once.delete(audio))
+  void audio.play().catch(() => once.delete(audio))
 }
 
 export function stopAll(): void {
   loops.forEach((a) => fade(a, 0, () => a.pause()))
   loops.clear()
+  once.forEach((a) => a.pause()) // narration and effects stop at once
+  once.clear()
   changed()
 }

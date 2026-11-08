@@ -114,7 +114,7 @@ export function SoundboardTab() {
         <button className={category === MUSIC ? 'active' : ''} onClick={() => setCategory(MUSIC)}>{MUSIC}</button>
         <span className="sound-master">
           Volume <input type="range" min={0} max={100} value={Math.round(sound.getVolume() * 100)} onChange={(e) => sound.setVolume(Number(e.target.value) / 100)} />
-          <button className="small danger" onClick={sound.stopAll}>Stop sounds</button>
+          <button className="small danger" onClick={() => { sound.stopAll(); music.stop() }}>Stop all sound</button>
         </span>
       </div>
       {category === MUSIC ? <MusicList /> : (
