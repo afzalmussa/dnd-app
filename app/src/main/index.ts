@@ -27,8 +27,8 @@ import type { FolderKey } from '../shared/api'
 import * as wiki from './wikiFiles'
 import { publish } from './wikiPublish'
 
-// The DM's app was called DnD Character Manager before it was renamed; keep using that data folder so nothing is lost.
-if (!PLAYER_EDITION && !app.commandLine.hasSwitch('user-data-dir')) app.setPath('userData', join(app.getPath('appData'), 'DnD Character Manager'))
+// Both apps were called DnD Character Manager before they were renamed; keep using the old data folders so nothing is lost.
+if (!app.commandLine.hasSwitch('user-data-dir')) app.setPath('userData', join(app.getPath('appData'), PLAYER_EDITION ? 'DnD Character Manager Players' : 'DnD Character Manager'))
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({

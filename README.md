@@ -1,6 +1,6 @@
 # DMs Toolbox (DnD Character Manager)
 
-The DM's build is called DMs Toolbox; the players' build is called DnD Character Manager. Both keep the data folder name `%APPDATA%\DnD Character Manager` (the players' is `DnD Character Manager Players`).
+The DM's build is called DMs Toolbox; the players' build is called Heroes Toolbox. They keep their old data folders, `%APPDATA%\DnD Character Manager` (DM) and `%APPDATA%\DnD Character Manager Players` (players).
 
 A Windows desktop character manager for our D&D group, using the 2024 Player's Handbook rules.
 
@@ -121,4 +121,4 @@ The sounds are files in the sound folder (Settings, "The sound library"; while d
 - **Campaigns:** Settings, "Campaign". Each campaign has its own characters, notes, party wiki, secrets, DM folder, backups and encounter; homebrew corrections and the sound library are shared. Your existing settings become the first campaign. Create more, rename or forget one (its files are never deleted); with two or more, a switcher appears in the toolbar.
 - **Colours:** Settings, "Colours": pick a theme (dark grey is the default; Obsidian purple, Dragon red, Midnight, Forest, High contrast, Parchment light), then change the background, panels, text or accent colour if you like. Saved on this PC.
 - **Wiki images:** `![[name.png]]` and relative images are found by file name anywhere in the folder, as Obsidian does, so images kept in an Assets folder show up.
-- **Names:** the DM's app is **DMs Toolbox**; the players' app keeps the name DnD Character Manager. The DM's data folder keeps its old name, so nothing moves.
+- **Names:** the DM's app is **DMs Toolbox**; the players' app is **Heroes Toolbox**. The DM's data folder keeps its old name, so nothing moves.

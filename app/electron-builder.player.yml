@@ -2,7 +2,7 @@
 # No monsters, no Dungeon Master's Guide items, and the DM tools are switched off in the code
 # (see src/renderer/src/edition.ts). Make it with: npm run dist:player
 appId: com.afzalmussa.dndcharactermanager.players
-productName: DnD Character Manager Players
+productName: Heroes Toolbox
 directories:
   output: release-player
 files:
