@@ -1,7 +1,7 @@
 // Electron main process: opens the window and answers the UI's requests
 // for file access (see src/shared/api.ts for the list).
 
-import { app, BrowserWindow, dialog, ipcMain, net, protocol } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, session } from 'electron'
 import { pathToFileURL } from 'node:url'
 import { extname } from 'node:path'
 import { join } from 'node:path'
@@ -20,6 +20,8 @@ import { deleteUserEntry, saveUserEntry, type ContentKind } from './userContent'
 import { getCampaign, listParty, setCampaign } from './party'
 import { getSaveFolder, loadSettings, saveSettings } from './settings'
 import { PLAYER_EDITION } from './edition'
+import { listSounds, safeAudioPath, youtubeTitle } from './audio'
+import type { FolderKey } from '../shared/api'
 import * as wiki from './wikiFiles'
 import { publish } from './wikiPublish'
 
@@ -71,7 +73,7 @@ function createWindow(): BrowserWindow {
 
 function registerHandlers(): void {
   ipcMain.handle('getSettings', () => loadSettings())
-  ipcMain.handle('chooseFolder', async (event, which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder' | 'privateFolder') => {
+  ipcMain.handle('chooseFolder', async (event, which: FolderKey) => {
     const parent = BrowserWindow.fromWebContents(event.sender)
     const options = { properties: ['openDirectory' as const, 'createDirectory' as const], title: 'Choose a folder' }
     const result = parent ? await dialog.showOpenDialog(parent, options) : await dialog.showOpenDialog(options)
@@ -114,6 +116,8 @@ function registerHandlers(): void {
   ipcMain.handle('wikiTrash', (_e, area, path) => wiki.trashPage(area, path))
   ipcMain.handle('wikiPages', (_e, area) => wiki.allPagesWithText(area))
   ipcMain.handle('listMonsters', () => mergedContent('monster'))
+  ipcMain.handle('listSounds', () => listSounds())
+  ipcMain.handle('youtubeTitle', (_e, url: string) => youtubeTitle(url))
   ipcMain.handle('listItems', () => listItems())
   ipcMain.handle('listContent', (_e, kind: ContentKind) => mergedContent(kind))
   ipcMain.handle('saveContent', (_e, kind: ContentKind, entry: { id: string }) => saveUserEntry(kind, entry))
@@ -155,7 +159,10 @@ function registerHandlers(): void {
 
 // Images in wiki pages load through wiki-file://<area>/<path>. Only image files inside the two wiki
 // folders are served; the screen's Content Security Policy allows this scheme for images only.
-protocol.registerSchemesAsPrivileged([{ scheme: 'wiki-file', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'wiki-file', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+  { scheme: 'audio-file', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }
+])
 const IMAGE_TYPES = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp'])
 
 app.whenReady().then(() => {
@@ -170,6 +177,22 @@ app.whenReady().then(() => {
       return new Response('Not found', { status: 404 })
     }
   })
+  // Sounds from the DM's sound folder (audio files only).
+  protocol.handle('audio-file', (request) => {
+    try {
+      if (PLAYER_EDITION) return new Response('Not allowed', { status: 403 })
+      const relative = decodeURIComponent(new URL(request.url).pathname.slice(1))
+      return net.fetch(pathToFileURL(safeAudioPath(relative)).toString(), { headers: request.headers })
+    } catch {
+      return new Response('Not found', { status: 404 })
+    }
+  })
+  // YouTube refuses embedded players that send no page address, which a desktop app does not have.
+  if (!PLAYER_EDITION) {
+    session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['https://www.youtube-nocookie.com/*', 'https://www.youtube.com/*'] }, (details, done) => {
+      done({ requestHeaders: { ...details.requestHeaders, Referer: 'https://www.youtube.com/' } })
+    })
+  }
   registerHandlers()
   const window = createWindow()
   wiki.startWatching(window)

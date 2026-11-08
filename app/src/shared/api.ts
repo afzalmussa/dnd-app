@@ -61,6 +61,18 @@ export interface FeatInfo {
 export type ContentKind = 'spell' | 'feat' | 'item' | 'class' | 'subclass' | 'species' | 'background' | 'monster'
 export type ContentOrigin = 'book' | 'edited' | 'user'
 
+export type FolderKey = 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder' | 'privateFolder' | 'audioFolder'
+
+export interface SoundInfo {
+  id: string
+  name: string
+  category: string
+  group: string // the pack (sub-folder) the sound came from
+  loop: boolean
+  credit: string | null
+  url: string
+}
+
 export interface AppSettings {
   saveFolder: string
   contentFolder: string
@@ -70,6 +82,7 @@ export interface AppSettings {
   partyWikiFolder: string
   privateFolder: string
   playerFolders: Record<string, string>
+  audioFolder: string
 }
 
 export interface PublishSummary {
@@ -97,9 +110,11 @@ export interface Campaign {
 export interface AppApi {
   // Monsters from the Monster Manual (and your own), for the DM's encounter tools.
   listMonsters(): Promise<Record<string, any>[]>
+  listSounds(): Promise<SoundInfo[]>
+  youtubeTitle(url: string): Promise<string | null>
   getSettings(): Promise<AppSettings>
   // Opens a folder picker. Returns the new settings, or null if cancelled.
-  chooseFolder(which: 'saveFolder' | 'contentFolder' | 'dmFolder' | 'notesFolder' | 'partyWikiFolder' | 'privateFolder'): Promise<AppSettings | null>
+  chooseFolder(which: FolderKey): Promise<AppSettings | null>
   // DM: publish the shared and secret parts of notes. Only the DM's PC can do this.
   wikiPublish(scope: 'all' | 'page', path?: string): Promise<PublishSummary>
   // DM: pick the private folder for one player (a Drive folder shared with that player only).

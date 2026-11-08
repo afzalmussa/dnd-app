@@ -16,15 +16,22 @@ export interface Settings {
   partyWikiFolder: string // Party Wiki: shared pages (empty until chosen)
   privateFolder: string // "From the DM": a folder only this player can see, where the DM publishes their secrets
   playerFolders: Record<string, string> // DM only: player name -> that player's private folder
+  audioFolder: string // DM only: the sound library
 }
 
 function settingsPath(): string {
   return join(app.getPath('userData'), 'settings.json')
 }
 
+// While developing, sounds fetched into <project>/audio are found without any setting.
+function devAudioFolder(): string | null {
+  const folder = join(app.getAppPath(), '..', 'audio')
+  return existsSync(folder) ? folder : null
+}
+
 function defaults(): Settings {
   const saveFolder = join(app.getPath('userData'), 'characters')
-  return { saveFolder, contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', dmFolder: saveFolder, notesFolder: join(app.getPath('userData'), 'notes'), partyWikiFolder: '', privateFolder: '', playerFolders: {} }
+  return { saveFolder, contentFolder: join(app.getPath('userData'), 'user-content'), role: 'player', dmFolder: saveFolder, notesFolder: join(app.getPath('userData'), 'notes'), partyWikiFolder: '', privateFolder: '', playerFolders: {}, audioFolder: devAudioFolder() ?? join(app.getPath('userData'), 'audio') }
 }
 
 export function loadSettings(): Settings {

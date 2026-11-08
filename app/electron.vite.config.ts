@@ -13,7 +13,8 @@ const playerAlias =
   process.env.VITE_EDITION === 'player'
     ? [
         { find: './dm/EncountersTab', replacement: resolve(dm, 'stub.tsx') },
-        { find: './dm/PartyView', replacement: resolve(dm, 'stub.tsx') }
+        { find: './dm/PartyView', replacement: resolve(dm, 'stub.tsx') },
+        { find: './dm/SoundboardTab', replacement: resolve(dm, 'stub.tsx') }
       ]
     : []
 
